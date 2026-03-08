@@ -3,9 +3,23 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# IDE & Editor
 .cursorrules
+.idea/
+.trae/
+.claude/
+.qoder/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # Auto-generated files
 src/types/import/auto-imports.d.ts
 src/types/import/components.d.ts
 .auto-import.json
+
+# Environment files (optional, uncomment if needed)
+# .env
+# .env.development
+# .env.production
