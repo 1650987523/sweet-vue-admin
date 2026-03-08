@@ -19,6 +19,16 @@ const autoImportConfig = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, '.auto-import.json'), 'utf-8')
 )
 
+// Element Plus 全局变量（由 unplugin-auto-import 自动导入）
+const elementPlusGlobals = {
+  ElButton: true,
+  ElButton2: true,
+  ElIcon: true,
+  ElLoading: true,
+  ElMessage: true,
+  ElMessageBox: true
+}
+
 export default [
   // 指定文件匹配规则
   {
@@ -46,6 +56,8 @@ export default [
       globals: {
         // 合并从 autoImportConfig 中读取的全局变量配置
         ...autoImportConfig.globals,
+        // 合并 Element Plus 全局变量
+        ...elementPlusGlobals,
         // TypeScript 全局命名空间
         Api: 'readonly'
       }
