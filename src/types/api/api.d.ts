@@ -24,7 +24,7 @@
  * ## 使用方式
  *
  * ```typescript
- * const params: Api.Auth.LoginParams = { userName: 'admin', password: '123456' }
+ * const params: Api.Auth.LoginParams = { username: 'admin', password: '123456' }
  * const response: Api.Auth.UserInfo = await fetchUserInfo()
  * ```
  *
@@ -64,7 +64,7 @@ declare namespace Api {
   namespace Auth {
     /** 登录参数 */
     interface LoginParams {
-      userName: string
+      username: string
       password: string
     }
 
@@ -78,10 +78,29 @@ declare namespace Api {
     interface UserInfo {
       buttons: string[]
       roles: string[]
+      permissions: string[]
       userId: number
-      userName: string
+      username: string
       email: string
       avatar?: string
+      realName?: string
+      mobile?: string
+      gender?: number
+      address?: string
+      remark?: string
+      type?: number // 用户类型：1-管理员 2-普通用户
+      storeId?: number // 所属门店 ID
+    }
+
+    /** 更新用户信息参数 */
+    interface UpdateUserInfoParams {
+      realName?: string
+      nikeName?: string
+      email?: string
+      mobile?: string
+      address?: string
+      sex?: string
+      des?: string
     }
   }
 
@@ -94,13 +113,14 @@ declare namespace Api {
     interface UserListItem {
       id: number
       avatar: string
-      status: string
-      userName: string
-      userGender: string
-      nickName: string
-      userPhone: string
-      userEmail: string
-      userRoles: string[]
+      username: string
+      mobile: string
+      realName: string
+      status: number
+      email: string
+      gender: number
+      storeId?: number
+      roles: string[]
       createBy: string
       createTime: string
       updateBy: string
@@ -109,7 +129,7 @@ declare namespace Api {
 
     /** 用户搜索参数 */
     type UserSearchParams = Partial<
-      Pick<UserListItem, 'id' | 'userName' | 'userGender' | 'userPhone' | 'userEmail' | 'status'> &
+      Pick<UserListItem, 'id' | 'username' | 'mobile' | 'email' | 'status' | 'storeId'> &
         Api.Common.CommonSearchParams
     >
 
@@ -118,18 +138,108 @@ declare namespace Api {
 
     /** 角色列表项 */
     interface RoleListItem {
+      id: number
       roleId: number
       roleName: string
       roleCode: string
       description: string
-      enabled: boolean
+      status: number
       createTime: string
     }
 
     /** 角色搜索参数 */
     type RoleSearchParams = Partial<
-      Pick<RoleListItem, 'roleId' | 'roleName' | 'roleCode' | 'description' | 'enabled'> &
+      Pick<RoleListItem, 'roleId' | 'roleName' | 'roleCode' | 'description' | 'status'> &
         Api.Common.CommonSearchParams
     >
+  }
+
+  /** 订单管理类型 */
+  namespace Order {
+    /** 订单列表 */
+    interface OrderList {
+      records: OrderListItem[]
+      total: number
+    }
+
+    /** 订单列表项 */
+    interface OrderListItem {
+      id: number
+      orderNo: string
+      customerId?: number
+      customerName?: string
+      orderStatus?: number
+      paymentMethod?: number
+      paymentStatus?: number
+      totalAmount?: number
+      discountAmount?: number
+      actualAmount?: number
+      shippingAddress?: string
+      receiverName?: string
+      receiverPhone?: string
+      remark?: string
+      createTime?: string
+      updateTime?: string
+    }
+
+    /** 订单搜索参数 */
+    interface OrderSearchParams {
+      current?: number
+      size?: number
+      orderNo?: string
+      orderStatus?: number
+      paymentStatus?: number
+      startDate?: string
+      endDate?: string
+    }
+
+    /** 订单表单参数（新增/编辑） */
+    interface OrderFormParams {
+      id?: number
+      orderNo?: string
+      customerId?: number
+      customerName?: string
+      orderStatus?: number
+      paymentMethod?: number
+      paymentStatus?: number
+      totalAmount?: number
+      discountAmount?: number
+      actualAmount?: number
+      shippingAddress?: string
+      receiverName?: string
+      receiverPhone?: string
+      remark?: string
+    }
+
+    /** 订单明细搜索参数 */
+    interface OrderDetailSearchParams {
+      current?: number
+      size?: number
+      orderId?: number
+    }
+
+    /** 订单明细列表 */
+    interface OrderDetailList {
+      records: OrderDetailListItem[]
+      total: number
+    }
+
+    /** 订单明细列表项 */
+    interface OrderDetailListItem {
+      id: number
+      orderId: number
+      orderNo?: string
+      productId: number
+      productName: string
+      productImage?: string
+      skuId?: number
+      skuName?: string
+      skuSpec?: string
+      price: number
+      quantity: number
+      subtotal: number
+      createTime?: string
+      updateTime?: string
+    }
   }
 }

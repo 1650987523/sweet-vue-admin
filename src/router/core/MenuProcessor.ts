@@ -10,7 +10,7 @@
 import type { AppRouteRecord } from '@/types/router'
 import { useUserStore } from '@/store/modules/user'
 import { useAppMode } from '@/hooks/core/useAppMode'
-import { fetchGetMenuList } from '@/api/system-manage'
+import { fetchGetRouterMenuTree } from '@/api/system/menu'
 import { asyncRoutes } from '../routes/asyncRoutes'
 import { RoutesAlias } from '../routesAlias'
 import { formatMenuTitle } from '@/utils'
@@ -57,8 +57,33 @@ export class MenuProcessor {
    * 处理后端控制模式的菜单
    */
   private async processBackendMenu(): Promise<AppRouteRecord[]> {
-    const list = await fetchGetMenuList()
-    return this.filterEmptyMenus(list)
+    const list = await fetchGetRouterMenuTree()
+    const filteredList = this.filterEmptyMenus(list)
+
+    // 按 orderNum 排序（数值越小越靠前）
+    return this.sortMenuListByOrderNum(filteredList)
+  }
+
+  /**
+   * 按 orderNum 排序菜单列表
+   */
+  private sortMenuListByOrderNum(menuList: AppRouteRecord[]): AppRouteRecord[] {
+    return menuList
+      .sort((a, b) => {
+        const aOrder = a.orderNum ?? Number.MAX_SAFE_INTEGER
+        const bOrder = b.orderNum ?? Number.MAX_SAFE_INTEGER
+        return aOrder - bOrder
+      })
+      .map((item) => {
+        // 递归排序子菜单
+        if (item.children?.length) {
+          return {
+            ...item,
+            children: this.sortMenuListByOrderNum(item.children)
+          }
+        }
+        return item
+      })
   }
 
   /**

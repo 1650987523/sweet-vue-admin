@@ -32,10 +32,9 @@
  * @author Art Design Pro Team
  */
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { LanguageEnum } from '@/enums/appEnum'
 import { router } from '@/router'
-import { useSettingStore } from './setting'
 import { useWorktabStore } from './worktab'
 import { AppRouteRecord } from '@/types/router'
 import { setPageTitle } from '@/utils/router'
@@ -66,13 +65,6 @@ export const useUserStore = defineStore(
     const accessToken = ref('')
     // 刷新令牌
     const refreshToken = ref('')
-
-    // 计算属性：获取用户信息
-    const getUserInfo = computed(() => info.value)
-    // 计算属性：获取设置状态
-    const getSettingState = computed(() => useSettingStore().$state)
-    // 计算属性：获取工作台状态
-    const getWorktabState = computed(() => useWorktabStore().$state)
 
     /**
      * 设置用户信息
@@ -212,9 +204,6 @@ export const useUserStore = defineStore(
       searchHistory,
       accessToken,
       refreshToken,
-      getUserInfo,
-      getSettingState,
-      getWorktabState,
       setUserInfo,
       setLoginStatus,
       setLanguage,

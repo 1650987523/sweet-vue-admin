@@ -21,12 +21,12 @@
             <ElFormItem prop="account">
               <ElSelect v-model="formData.account" @change="setupAccount">
                 <ElOption
-                  v-for="account in accounts"
-                  :key="account.key"
-                  :label="account.label"
-                  :value="account.key"
+                  v-for="key in accounts"
+                  :key="key"
+                  :label="getAccountInfo(key).label"
+                  :value="key"
                 >
-                  <span>{{ account.label }}</span>
+                  <span>{{ getAccountInfo(key).label }}</span>
                 </ElOption>
               </ElSelect>
             </ElFormItem>
@@ -112,9 +112,11 @@
   import { useUserStore } from '@/store/modules/user'
   import { useI18n } from 'vue-i18n'
   import { HttpError } from '@/utils/http/error'
-  import { fetchLogin } from '@/api/auth'
+  import { fetchLogin } from '@/api/system/auth'
   import { ElNotification, type FormInstance, type FormRules } from 'element-plus'
   import { useSettingStore } from '@/store/modules/setting'
+  import { aesEncrypt } from '@/utils/crypto'
+  import type { LoginAccount } from '@/types/config'
 
   defineOptions({ name: 'Login' })
 
@@ -130,37 +132,33 @@
 
   type AccountKey = 'super' | 'admin' | 'user'
 
-  export interface Account {
-    key: AccountKey
-    label: string
-    userName: string
-    password: string
-    roles: string[]
-  }
+  // 从配置文件获取账号列表
+  const accounts = computed<AccountKey[]>(() => {
+    const configAccounts = AppConfig.loginAccounts
+    if (!configAccounts) return ['admin']
+    return Object.keys(configAccounts) as AccountKey[]
+  })
 
-  const accounts = computed<Account[]>(() => [
-    {
-      key: 'super',
-      label: t('login.roles.super'),
-      userName: 'Super',
-      password: '123456',
-      roles: ['R_SUPER']
-    },
-    {
-      key: 'admin',
-      label: t('login.roles.admin'),
-      userName: 'Admin',
-      password: '123456',
-      roles: ['R_ADMIN']
-    },
-    {
-      key: 'user',
-      label: t('login.roles.user'),
-      userName: 'User',
-      password: '123456',
-      roles: ['R_USER']
+  // 获取账号信息
+  const getAccountInfo = (key: AccountKey): LoginAccount => {
+    const configAccounts = AppConfig.loginAccounts
+    if (!configAccounts) {
+      return {
+        label: t('login.roles.admin'),
+        username: 'admin',
+        password: 'admin',
+        roles: ['R_ADMIN']
+      }
     }
-  ])
+    return (
+      configAccounts[key] || {
+        label: t('login.roles.admin'),
+        username: 'admin',
+        password: 'admin',
+        roles: ['R_ADMIN']
+      }
+    )
+  }
 
   const dragVerify = ref()
 
@@ -188,15 +186,15 @@
   const loading = ref(false)
 
   onMounted(() => {
-    setupAccount('super')
+    setupAccount('admin')
   })
 
   // 设置账号
   const setupAccount = (key: AccountKey) => {
-    const selectedAccount = accounts.value.find((account: Account) => account.key === key)
+    const accountInfo = getAccountInfo(key)
     formData.account = key
-    formData.username = selectedAccount?.userName ?? ''
-    formData.password = selectedAccount?.password ?? ''
+    formData.username = accountInfo.username
+    formData.password = accountInfo.password
   }
 
   // 登录
@@ -219,9 +217,12 @@
       // 登录请求
       const { username, password } = formData
 
+      // 使用AES加密密码
+      const encryptedPassword = aesEncrypt(password)
+
       const { token, refreshToken } = await fetchLogin({
-        userName: username,
-        password
+        username: username,
+        password: encryptedPassword
       })
 
       // 验证token

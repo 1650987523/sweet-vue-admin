@@ -9,23 +9,39 @@
       <ElFormItem label="用户名" prop="username">
         <ElInput v-model="formData.username" placeholder="请输入用户名" />
       </ElFormItem>
+      <ElFormItem v-if="dialogType === 'add'" label="密码" prop="password">
+        <ElInput
+          v-model="formData.password"
+          type="password"
+          placeholder="请输入密码"
+          show-password
+        />
+      </ElFormItem>
+      <ElFormItem v-if="dialogType === 'add'" label="确认密码" prop="confirmPassword">
+        <ElInput
+          v-model="formData.confirmPassword"
+          type="password"
+          placeholder="请再次输入密码"
+          show-password
+        />
+      </ElFormItem>
       <ElFormItem label="手机号" prop="phone">
         <ElInput v-model="formData.phone" placeholder="请输入手机号" />
+      </ElFormItem>
+      <ElFormItem label="所属门店" prop="storeId">
+        <ElSelect v-model="formData.storeId" placeholder="请选择门店" clearable style="width: 100%">
+          <ElOption
+            v-for="store in storeList"
+            :key="store.id"
+            :label="store.name || store.storeName"
+            :value="store.id"
+          />
+        </ElSelect>
       </ElFormItem>
       <ElFormItem label="性别" prop="gender">
         <ElSelect v-model="formData.gender">
           <ElOption label="男" value="男" />
           <ElOption label="女" value="女" />
-        </ElSelect>
-      </ElFormItem>
-      <ElFormItem label="角色" prop="role">
-        <ElSelect v-model="formData.role" multiple>
-          <ElOption
-            v-for="role in roleList"
-            :key="role.roleCode"
-            :value="role.roleCode"
-            :label="role.roleName"
-          />
         </ElSelect>
       </ElFormItem>
     </ElForm>
@@ -39,8 +55,13 @@
 </template>
 
 <script setup lang="ts">
-  import { ROLE_LIST_DATA } from '@/mock/temp/formData'
+  import { ref, reactive, computed, watch, nextTick, onMounted } from 'vue'
+  import { ElMessage } from 'element-plus'
+  import { fetchAddUser, fetchUpdateUser } from '@/api/system-manage'
+  import { fetchGetStoreList } from '@/api/product/store'
+  import { unwrapList } from '@/utils/helper'
   import type { FormInstance, FormRules } from 'element-plus'
+  import { aesEncrypt } from '@/utils/crypto/index'
 
   interface Props {
     visible: boolean
@@ -56,9 +77,6 @@
   const props = defineProps<Props>()
   const emit = defineEmits<Emits>()
 
-  // 角色列表数据
-  const roleList = ref(ROLE_LIST_DATA)
-
   // 对话框显示控制
   const dialogVisible = computed({
     get: () => props.visible,
@@ -69,13 +87,34 @@
 
   // 表单实例
   const formRef = ref<FormInstance>()
+  const submitting = ref(false)
+
+  // 门店列表
+  const storeList = ref<Array<{ id: number; name: string; storeName?: string }>>([])
+
+  // 加载门店列表
+  const loadStoreList = async () => {
+    try {
+      const res = await fetchGetStoreList()
+      storeList.value = unwrapList(res)
+    } catch (error) {
+      console.error('加载门店列表失败:', error)
+    }
+  }
+
+  onMounted(() => {
+    loadStoreList()
+  })
 
   // 表单数据
   const formData = reactive({
+    id: undefined as number | undefined,
     username: '',
+    password: '',
+    confirmPassword: '',
     phone: '',
-    gender: '男',
-    role: [] as string[]
+    storeId: undefined as number | undefined,
+    gender: '男'
   })
 
   // 表单验证规则
@@ -84,27 +123,43 @@
       { required: true, message: '请输入用户名', trigger: 'blur' },
       { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
     ],
+    password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+    confirmPassword: [
+      { required: true, message: '请再次输入密码', trigger: 'blur' },
+      {
+        validator: (rule: any, value: any, callback: any) => {
+          if (value !== formData.password) {
+            callback(new Error('两次输入的密码不一致'))
+          } else {
+            callback()
+          }
+        },
+        trigger: 'blur'
+      }
+    ],
     phone: [
       { required: true, message: '请输入手机号', trigger: 'blur' },
       { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号格式', trigger: 'blur' }
     ],
-    gender: [{ required: true, message: '请选择性别', trigger: 'blur' }],
-    role: [{ required: true, message: '请选择角色', trigger: 'blur' }]
+    gender: [{ required: true, message: '请选择性别', trigger: 'blur' }]
   }
 
   /**
    * 初始化表单数据
-   * 根据对话框类型（新增/编辑）填充表单
+   * 根据是否有用户数据来判断是编辑还是新增
    */
   const initFormData = () => {
-    const isEdit = props.type === 'edit' && props.userData
+    const isEdit = !!props.userData?.id
     const row = props.userData
 
     Object.assign(formData, {
-      username: isEdit && row ? row.userName || '' : '',
-      phone: isEdit && row ? row.userPhone || '' : '',
-      gender: isEdit && row ? row.userGender || '男' : '男',
-      role: isEdit && row ? (Array.isArray(row.userRoles) ? row.userRoles : []) : []
+      id: isEdit && row ? row.id : undefined,
+      username: isEdit && row ? row.username || '' : '',
+      password: '',
+      confirmPassword: '',
+      phone: isEdit && row ? row.mobile || '' : '',
+      storeId: isEdit && row ? row.storeId : undefined,
+      gender: isEdit && row ? (row.gender === 1 ? '男' : '女') : '男'
     })
   }
 
@@ -122,7 +177,7 @@
         })
       }
     },
-    { immediate: true }
+    { immediate: false }
   )
 
   /**
@@ -130,14 +185,43 @@
    * 验证通过后触发提交事件
    */
   const handleSubmit = async () => {
-    if (!formRef.value) return
+    if (!formRef.value || submitting.value) return
 
-    await formRef.value.validate((valid) => {
-      if (valid) {
-        ElMessage.success(dialogType.value === 'add' ? '添加成功' : '更新成功')
-        dialogVisible.value = false
-        emit('submit')
+    try {
+      await formRef.value.validate()
+      submitting.value = true
+
+      const isEdit = !!formData.id
+      const userData: any = {
+        username: formData.username,
+        mobile: formData.phone,
+        gender: formData.gender === '男' ? 1 : 2
       }
-    })
+
+      // 如果有选择门店，则传递 storeId
+      if (formData.storeId !== undefined) {
+        userData.storeId = formData.storeId
+      }
+
+      // 新增模式需要传递加密后的密码
+      if (!isEdit) {
+        userData.password = aesEncrypt(formData.password)
+      }
+
+      if (isEdit) {
+        await fetchUpdateUser(formData.id!, userData)
+        ElMessage.success('更新成功')
+      } else {
+        await fetchAddUser(userData)
+        ElMessage.success('添加成功')
+      }
+
+      dialogVisible.value = false
+      emit('submit')
+    } catch (error) {
+      console.error('提交失败:', error)
+    } finally {
+      submitting.value = false
+    }
   }
 </script>

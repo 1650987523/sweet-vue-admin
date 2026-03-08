@@ -54,6 +54,23 @@ export class RouteRegistry {
       }
     })
 
+    // 添加个人中心路由（始终存在，不依赖后端菜单）
+    if (!this.router.hasRoute('UserCenter')) {
+      const userCenterRoute = this.transformer.transform({
+        path: '/system/user-center',
+        name: 'UserCenter',
+        component: '/system/user-center',
+        meta: {
+          title: 'menus.system.userCenter',
+          isHide: true,
+          keepAlive: true,
+          isHideTab: true
+        }
+      })
+      const removeUserCenterFn = this.router.addRoute(userCenterRoute as RouteRecordRaw)
+      removeRouteFns.push(removeUserCenterFn)
+    }
+
     this.removeRouteFns = removeRouteFns
     this.registered = true
   }

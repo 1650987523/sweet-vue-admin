@@ -155,3 +155,6 @@ export interface RootState {
   /** 菜单状态 */
   menu: MenuState
 }
+
+// 导出门店相关类型
+export * from './store'

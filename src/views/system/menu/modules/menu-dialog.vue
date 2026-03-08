@@ -20,10 +20,14 @@
       :show-submit="false"
     >
       <template #menuType>
-        <ElRadioGroup v-model="form.menuType" :disabled="disableMenuType">
-          <ElRadioButton value="menu" label="menu">菜单</ElRadioButton>
-          <ElRadioButton value="button" label="button">按钮</ElRadioButton>
-        </ElRadioGroup>
+        <ElSelect v-model="form.menuType" :disabled="disableMenuType">
+          <ElOption
+            v-for="(item, key) in MENU_TYPE_CONFIG"
+            :key="key"
+            :label="item.text"
+            :value="key"
+          />
+        </ElSelect>
       </template>
     </ArtForm>
 
@@ -40,11 +44,12 @@
   import type { FormRules } from 'element-plus'
   import { ElIcon, ElTooltip } from 'element-plus'
   import { QuestionFilled } from '@element-plus/icons-vue'
-  import { formatMenuTitle } from '@/utils/router'
-  import type { AppRouteRecord } from '@/types/router'
   import type { FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtForm from '@/components/core/forms/art-form/index.vue'
   import { useWindowSize } from '@vueuse/core'
+  import { AdminMenuFormParams, MENU_TYPE_CONFIG, AdminMenuItem } from '@/types/menu'
+  import { AdminMenuTypeEnum, MenuStatusEnum } from '@/enums/menuEnum'
+  import { fetchGetPermissionCodes } from '@/api/system/permissions'
 
   const { width } = useWindowSize()
 
@@ -69,43 +74,17 @@
       ])
   }
 
-  interface MenuFormData {
-    id: number
-    name: string
-    path: string
-    label: string
-    component: string
-    icon: string
-    isEnable: boolean
-    sort: number
-    isMenu: boolean
-    keepAlive: boolean
-    isHide: boolean
-    isHideTab: boolean
-    link: string
-    isIframe: boolean
-    showBadge: boolean
-    showTextBadge: string
-    fixedTab: boolean
-    activePath: string
-    roles: string[]
-    isFullPage: boolean
-    authName: string
-    authLabel: string
-    authIcon: string
-    authSort: number
-  }
-
   interface Props {
     visible: boolean
-    editData?: AppRouteRecord | any
+    editData?: any
     type?: 'menu' | 'button'
     lockType?: boolean
+    menuTreeData?: AdminMenuItem[]
   }
 
   interface Emits {
     (e: 'update:visible', value: boolean): void
-    (e: 'submit', data: MenuFormData): void
+    (e: 'submit', data: AdminMenuFormParams): void
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -118,160 +97,175 @@
 
   const formRef = ref()
   const isEdit = ref(false)
+  const permsOptions = ref<string[]>([])
 
-  const form = reactive<MenuFormData & { menuType: 'menu' | 'button' }>({
-    menuType: 'menu',
-    id: 0,
-    name: '',
+  const getPermsList = async () => {
+    try {
+      permsOptions.value = await fetchGetPermissionCodes()
+    } catch (error) {
+      console.error('获取权限标识列表失败:', error)
+    }
+  }
+
+  const form = reactive<AdminMenuFormParams>({
+    menuType: AdminMenuTypeEnum.MENU, // 默认为菜单类型
+    id: undefined,
+    parentId: undefined,
     path: '',
-    label: '',
     component: '',
-    icon: '',
-    isEnable: true,
-    sort: 1,
-    isMenu: true,
-    keepAlive: true,
-    isHide: false,
-    isHideTab: false,
-    link: '',
-    isIframe: false,
-    showBadge: false,
-    showTextBadge: '',
-    fixedTab: false,
-    activePath: '',
-    roles: [],
-    isFullPage: false,
-    authName: '',
-    authLabel: '',
-    authIcon: '',
-    authSort: 1
+    name: '',
+    redirect: '',
+    title: '',
+    menuStatus: MenuStatusEnum.ENABLE, // 默认启用
+    visible: MenuStatusEnum.ENABLE, // 默认显示
+    meta: {},
+    orderNum: 1,
+    perms: '',
+    permissionId: undefined,
+    isFrame: 0, // 默认非外链
+    isCache: 0, // 默认不缓存
+    isHideTab: 0, // 默认不隐藏标签页
+    query: '',
+    remark: ''
   })
 
-  const rules = reactive<FormRules>({
-    name: [
-      { required: true, message: '请输入菜单名称', trigger: 'blur' },
-      { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+  const rules = computed<FormRules>(() => ({
+    title: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+    path: [
+      {
+        required: form.menuType !== AdminMenuTypeEnum.BUTTON,
+        message: '请输入路由地址',
+        trigger: 'blur'
+      }
     ],
-    path: [{ required: true, message: '请输入路由地址', trigger: 'blur' }],
-    label: [{ required: true, message: '输入权限标识', trigger: 'blur' }],
-    authName: [{ required: true, message: '请输入权限名称', trigger: 'blur' }],
-    authLabel: [{ required: true, message: '请输入权限标识', trigger: 'blur' }]
-  })
+    perms: [{ required: true, message: '请输入权限标识', trigger: 'blur' }]
+  }))
 
   /**
    * 表单项配置
    */
   const formItems = computed<FormItem[]>(() => {
-    const baseItems: FormItem[] = [{ label: '菜单类型', key: 'menuType', span: 24 }]
-
     // Switch 组件的 span：小屏幕 12，大屏幕 6
     const switchSpan = width.value < 640 ? 12 : 6
 
-    if (form.menuType === 'menu') {
-      return [
-        ...baseItems,
-        { label: '菜单名称', key: 'name', type: 'input', props: { placeholder: '菜单名称' } },
-        {
-          label: createLabelTooltip(
-            '路由地址',
-            '一级菜单：以 / 开头的绝对路径（如 /dashboard）\n二级及以下：相对路径（如 console、user）'
-          ),
-          key: 'path',
-          type: 'input',
-          props: { placeholder: '如：/dashboard 或 console' }
-        },
-        { label: '权限标识', key: 'label', type: 'input', props: { placeholder: '如：User' } },
-        {
-          label: createLabelTooltip(
-            '组件路径',
-            '一级父级菜单：填写 /index/index\n具体页面：填写组件路径（如 /system/user）\n目录菜单：留空'
-          ),
-          key: 'component',
-          type: 'input',
-          props: { placeholder: '如：/system/user 或留空' }
-        },
-        { label: '图标', key: 'icon', type: 'input', props: { placeholder: '如：ri:user-line' } },
-        {
-          label: createLabelTooltip(
-            '角色权限',
-            '仅用于前端权限模式：配置角色标识（如 R_SUPER、R_ADMIN）\n后端权限模式：无需配置'
-          ),
-          key: 'roles',
-          type: 'inputtag',
-          props: { placeholder: '输入角色标识后按回车，如：R_SUPER' }
-        },
-        {
-          label: '菜单排序',
-          key: 'sort',
-          type: 'number',
-          props: { min: 1, controlsPosition: 'right', style: { width: '100%' } }
-        },
-        {
-          label: '外部链接',
-          key: 'link',
-          type: 'input',
-          props: { placeholder: '如：https://www.example.com' }
-        },
-        {
-          label: '文本徽章',
-          key: 'showTextBadge',
-          type: 'input',
-          props: { placeholder: '如：New、Hot' }
-        },
-        {
-          label: createLabelTooltip(
-            '激活路径',
-            '用于详情页等隐藏菜单，指定高亮显示的父级菜单路径\n例如：用户详情页高亮显示"用户管理"菜单'
-          ),
-          key: 'activePath',
-          type: 'input',
-          props: { placeholder: '如：/system/user' }
-        },
-        { label: '是否启用', key: 'isEnable', type: 'switch', span: switchSpan },
-        { label: '页面缓存', key: 'keepAlive', type: 'switch', span: switchSpan },
-        { label: '隐藏菜单', key: 'isHide', type: 'switch', span: switchSpan },
-        { label: '是否内嵌', key: 'isIframe', type: 'switch', span: switchSpan },
-        { label: '显示徽章', key: 'showBadge', type: 'switch', span: switchSpan },
-        { label: '固定标签', key: 'fixedTab', type: 'switch', span: switchSpan },
-        { label: '标签隐藏', key: 'isHideTab', type: 'switch', span: switchSpan },
-        { label: '全屏页面', key: 'isFullPage', type: 'switch', span: switchSpan }
-      ]
-    } else {
-      return [
-        ...baseItems,
-        {
-          label: '权限名称',
-          key: 'authName',
-          type: 'input',
-          props: { placeholder: '如：新增、编辑、删除' }
-        },
-        {
-          label: '权限标识',
-          key: 'authLabel',
-          type: 'input',
-          props: { placeholder: '如：add、edit、delete' }
-        },
-        {
-          label: '权限排序',
-          key: 'authSort',
-          type: 'number',
-          props: { min: 1, controlsPosition: 'right', style: { width: '100%' } }
+    return [
+      { label: '菜单类型', key: 'menuType', span: 24 },
+      {
+        label: '父级ID',
+        key: 'parentId',
+        type: 'input',
+        span: 12,
+        props: {
+          disabled: true,
+          placeholder: '父级ID'
         }
-      ]
-    }
+      },
+      { label: '菜单名称', key: 'title', type: 'input', props: { placeholder: '请输入菜单名称' } },
+      {
+        label: createLabelTooltip(
+          '路由地址',
+          '一级菜单：以 / 开头的绝对路径（如 /dashboard）\n二级及以下：相对路径（如 console、user）'
+        ),
+        key: 'path',
+        type: 'input',
+        props: { placeholder: '如：/dashboard 或 console' }
+      },
+      {
+        label: createLabelTooltip('排序', '数值越小越靠前'),
+        key: 'orderNum',
+        type: 'number',
+        props: { min: 1, controlsPosition: 'right', style: { width: '100%' } }
+      },
+      {
+        label: createLabelTooltip('组件路径', '具体页面组件路径（如 /system/user）'),
+        key: 'component',
+        type: 'input',
+        props: { placeholder: '如：/system/user' }
+      },
+      {
+        label: '路由名称',
+        key: 'name',
+        type: 'input',
+        props: { placeholder: '如：User' }
+      },
+      {
+        label: '权限标识',
+        key: 'perms',
+        type: 'select',
+        props: {
+          placeholder: '请选择权限标识',
+          clearable: true,
+          filterable: true,
+          options: permsOptions.value.map((item) => ({ label: item, value: item }))
+        }
+      },
+      {
+        label: '路由参数',
+        key: 'query',
+        type: 'input',
+        props: { placeholder: '如：{"id": 1, "name": "test"}' }
+      },
+      {
+        label: '重定向',
+        key: 'redirect',
+        type: 'input',
+        props: { placeholder: '如：/dashboard/console' }
+      },
+      {
+        label: '显示状态',
+        key: 'visible',
+        type: 'switch',
+        span: switchSpan,
+        props: { activeValue: 1, inactiveValue: 0 }
+      },
+      {
+        label: '菜单状态',
+        key: 'menuStatus',
+        type: 'switch',
+        span: switchSpan,
+        props: { activeValue: 1, inactiveValue: 0 }
+      },
+      {
+        label: '是否外链',
+        key: 'isFrame',
+        type: 'switch',
+        span: switchSpan,
+        props: { activeValue: 1, inactiveValue: 0 }
+      },
+      {
+        label: '是否缓存',
+        key: 'isCache',
+        type: 'switch',
+        span: switchSpan,
+        props: { activeValue: 1, inactiveValue: 0 }
+      },
+      {
+        label: '隐藏标签页',
+        key: 'isHideTab',
+        type: 'switch',
+        span: switchSpan,
+        props: { activeValue: 1, inactiveValue: 0 }
+      },
+      {
+        label: '备注',
+        key: 'remark',
+        type: 'textarea',
+        span: 24,
+        props: { rows: 2, placeholder: '请输入备注信息' }
+      }
+    ]
   })
 
   const dialogTitle = computed(() => {
-    const type = form.menuType === 'menu' ? '菜单' : '按钮'
-    return isEdit.value ? `编辑${type}` : `新建${type}`
+    const typeText =
+      MENU_TYPE_CONFIG[form.menuType as keyof typeof MENU_TYPE_CONFIG]?.text || '菜单'
+    return isEdit.value ? `编辑${typeText}` : `新建${typeText}`
   })
 
   /**
    * 是否禁用菜单类型切换
    */
   const disableMenuType = computed(() => {
-    if (isEdit.value) return true
-    if (!isEdit.value && form.menuType === 'menu' && props.lockType) return true
     return false
   })
 
@@ -280,46 +274,67 @@
    */
   const resetForm = (): void => {
     formRef.value?.reset()
-    form.menuType = 'menu'
+    Object.assign(form, {
+      menuType: AdminMenuTypeEnum.MENU,
+      id: undefined,
+      parentId: undefined,
+      path: '',
+      component: '',
+      name: '',
+      redirect: '',
+      title: '',
+      menuStatus: MenuStatusEnum.ENABLE,
+      visible: MenuStatusEnum.ENABLE,
+      meta: {},
+      orderNum: 1,
+      perms: '',
+      permissionId: undefined,
+      isFrame: 0,
+      isCache: 0,
+      isHideTab: 0,
+      query: '',
+      remark: ''
+    })
   }
 
   /**
-   * 加载表单数据（编辑模式）
+   * 加载表单数据
    */
   const loadFormData = (): void => {
     if (!props.editData) return
 
-    isEdit.value = true
+    const row = props.editData
+    isEdit.value = !!row?.id // 通过ID判断是否为编辑模式
 
-    if (form.menuType === 'menu') {
-      const row = props.editData
-      form.id = row.id || 0
-      form.name = formatMenuTitle(row.meta?.title || '')
-      form.path = row.path || ''
-      form.label = row.name || ''
-      form.component = row.component || ''
-      form.icon = row.meta?.icon || ''
-      form.sort = row.meta?.sort || 1
-      form.isMenu = row.meta?.isMenu ?? true
-      form.keepAlive = row.meta?.keepAlive ?? false
-      form.isHide = row.meta?.isHide ?? false
-      form.isHideTab = row.meta?.isHideTab ?? false
-      form.isEnable = row.meta?.isEnable ?? true
-      form.link = row.meta?.link || ''
-      form.isIframe = row.meta?.isIframe ?? false
-      form.showBadge = row.meta?.showBadge ?? false
-      form.showTextBadge = row.meta?.showTextBadge || ''
-      form.fixedTab = row.meta?.fixedTab ?? false
-      form.activePath = row.meta?.activePath || ''
-      form.roles = row.meta?.roles || []
-      form.isFullPage = row.meta?.isFullPage ?? false
+    form.id = row.id
+    form.parentId = row.parentId !== undefined ? row.parentId : 0
+    form.path = row.path || ''
+    form.component = row.component || ''
+    form.name = row.name || ''
+    form.redirect = row.redirect || ''
+    form.title = row.title || ''
+    form.menuType = (row.menuType as keyof typeof MENU_TYPE_CONFIG) || AdminMenuTypeEnum.MENU
+    form.menuStatus = row.menuStatus !== undefined ? row.menuStatus : MenuStatusEnum.ENABLE
+    form.visible = row.visible !== undefined ? row.visible : MenuStatusEnum.ENABLE
+    form.meta = row.meta || {}
+    form.orderNum = row.orderNum || 1
+    form.perms = row.perms || ''
+    form.permissionId = row.permissionId
+    form.isFrame = row.isFrame || 0
+    form.isCache = row.isCache || 0
+    // 优先从 meta 中读取 isHideTab
+    if (row.meta && typeof row.meta.isHideTab !== 'undefined') {
+      form.isHideTab = row.meta.isHideTab ? 1 : 0
     } else {
-      const row = props.editData
-      form.authName = row.title || ''
-      form.authLabel = row.authMark || ''
-      form.authIcon = row.icon || ''
-      form.authSort = row.sort || 1
+      form.isHideTab = row.isHideTab || 0
     }
+    form.query = row.query || ''
+    form.remark = row.remark || ''
+
+    // 清除可能由赋值或 rules 变化触发的校验错误
+    nextTick(() => {
+      formRef.value?.ref?.clearValidate()
+    })
   }
 
   /**
@@ -330,8 +345,17 @@
 
     try {
       await formRef.value.validate()
-      emit('submit', { ...form })
-      ElMessage.success(`${isEdit.value ? '编辑' : '新增'}成功`)
+      // 组装 meta 数据
+      const submitData = { ...form }
+      submitData.meta = {
+        ...submitData.meta,
+        title: submitData.title,
+        isHide: submitData.visible === MenuStatusEnum.DISABLE, // 0 是隐藏
+        isHideTab: submitData.isHideTab === 1,
+        keepAlive: submitData.isCache === 1
+      }
+      emit('submit', submitData)
+      ElMessage.success(`${form.id ? '编辑' : '新增'}成功`)
       handleCancel()
     } catch {
       ElMessage.error('表单校验失败，请检查输入')
@@ -360,7 +384,14 @@
     () => props.visible,
     (newVal) => {
       if (newVal) {
-        form.menuType = props.type
+        getPermsList()
+        // 根据 props.type 设置 menuType
+        if (props.type === 'menu') {
+          form.menuType = props.lockType ? AdminMenuTypeEnum.MENU : AdminMenuTypeEnum.DIRECTORY
+        } else {
+          form.menuType = AdminMenuTypeEnum.BUTTON
+        }
+
         nextTick(() => {
           if (props.editData) {
             loadFormData()
@@ -377,7 +408,7 @@
     () => props.type,
     (newType) => {
       if (props.visible) {
-        form.menuType = newType
+        form.menuType = newType === 'menu' ? AdminMenuTypeEnum.MENU : AdminMenuTypeEnum.BUTTON
       }
     }
   )

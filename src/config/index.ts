@@ -38,7 +38,28 @@ import { headerBarConfig } from './modules/headerBar'
 const appConfig: SystemConfig = {
   // 系统信息
   systemInfo: {
-    name: 'Art Design Pro' // 系统名称
+    name: 'sweet' // 系统名称
+  },
+  // 登录账号配置（开发环境使用）
+  loginAccounts: {
+    super: {
+      label: '超级管理员',
+      username: 'zhangsan',
+      password: 'VEWVV7p3at4sE/4kc0IAoA==',
+      roles: ['R_SUPER_ADMIN']
+    },
+    admin: {
+      label: '管理员',
+      username: 'admin',
+      password: 'admin',
+      roles: ['R_SYS_ADMIN']
+    },
+    user: {
+      label: '普通用户',
+      username: 'User',
+      password: '123456',
+      roles: ['R_USER']
+    }
   },
   // 系统主题
   systemThemeStyles: {

@@ -40,7 +40,7 @@ export const tableConfig = {
   // 总条数
   totalFields: ['total', 'count'],
   // 当前页码
-  currentFields: ['current', 'page', 'pageNum'],
+  currentFields: ['current', 'page', 'pageNum', 'pageNo'],
   // 每页大小
   sizeFields: ['size', 'pageSize', 'limit'],
 
@@ -48,8 +48,8 @@ export const tableConfig = {
   // useTable 组合式函数传递分页参数的时候 用 current 跟 size
   paginationKey: {
     // 当前页码
-    current: 'current',
+    current: 'pageNo',
     // 每页大小
-    size: 'size'
+    size: 'pageSize'
   }
 }

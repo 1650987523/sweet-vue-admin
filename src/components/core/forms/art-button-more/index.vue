@@ -37,6 +37,8 @@
     label: string
     /** 是否禁用 */
     disabled?: boolean
+    /** 是否隐藏 */
+    hidden?: boolean
     /** 权限标识 */
     auth?: string
     /** 图标组件 */

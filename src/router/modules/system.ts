@@ -16,7 +16,6 @@ export const systemRoutes: AppRouteRecord = {
       component: '/system/user',
       meta: {
         title: 'menus.system.user',
-        icon: 'ri:user-line',
         keepAlive: true,
         roles: ['R_SUPER', 'R_ADMIN']
       }
@@ -27,7 +26,6 @@ export const systemRoutes: AppRouteRecord = {
       component: '/system/role',
       meta: {
         title: 'menus.system.role',
-        icon: 'ri:user-settings-line',
         keepAlive: true,
         roles: ['R_SUPER']
       }
@@ -38,10 +36,9 @@ export const systemRoutes: AppRouteRecord = {
       component: '/system/user-center',
       meta: {
         title: 'menus.system.userCenter',
-        icon: 'ri:user-line',
-        isHide: true,
+        isHide: true, // 不在菜单中显示
         keepAlive: true,
-        isHideTab: true
+        isHideTab: true // 不在标签页显示
       }
     },
     {
@@ -50,100 +47,34 @@ export const systemRoutes: AppRouteRecord = {
       component: '/system/menu',
       meta: {
         title: 'menus.system.menu',
-        icon: 'ri:menu-line',
         keepAlive: true,
         roles: ['R_SUPER'],
         authList: [
-          { title: '新增', authMark: 'add' },
-          { title: '编辑', authMark: 'edit' },
-          { title: '删除', authMark: 'delete' }
+          { title: 'buttons.add', authMark: 'add' },
+          { title: 'buttons.edit', authMark: 'edit' },
+          { title: 'buttons.delete', authMark: 'delete' }
         ]
       }
     },
     {
-      path: 'nested',
-      name: 'Nested',
-      component: '',
+      path: 'permission',
+      name: 'Permission',
+      component: '/system/permission',
       meta: {
-        title: 'menus.system.nested',
-        icon: 'ri:menu-unfold-3-line',
-        keepAlive: true
-      },
-      children: [
-        {
-          path: 'menu1',
-          name: 'NestedMenu1',
-          component: '/system/nested/menu1',
-          meta: {
-            title: 'menus.system.menu1',
-            icon: 'ri:align-justify',
-            keepAlive: true
-          }
-        },
-        {
-          path: 'menu2',
-          name: 'NestedMenu2',
-          component: '',
-          meta: {
-            title: 'menus.system.menu2',
-            icon: 'ri:align-justify',
-            keepAlive: true
-          },
-          children: [
-            {
-              path: 'menu2-1',
-              name: 'NestedMenu2-1',
-              component: '/system/nested/menu2',
-              meta: {
-                title: 'menus.system.menu21',
-                icon: 'ri:align-justify',
-                keepAlive: true
-              }
-            }
-          ]
-        },
-        {
-          path: 'menu3',
-          name: 'NestedMenu3',
-          component: '',
-          meta: {
-            title: 'menus.system.menu3',
-            icon: 'ri:align-justify',
-            keepAlive: true
-          },
-          children: [
-            {
-              path: 'menu3-1',
-              name: 'NestedMenu3-1',
-              component: '/system/nested/menu3',
-              meta: {
-                title: 'menus.system.menu31',
-                keepAlive: true
-              }
-            },
-            {
-              path: 'menu3-2',
-              name: 'NestedMenu3-2',
-              component: '',
-              meta: {
-                title: 'menus.system.menu32',
-                keepAlive: true
-              },
-              children: [
-                {
-                  path: 'menu3-2-1',
-                  name: 'NestedMenu3-2-1',
-                  component: '/system/nested/menu3/menu3-2',
-                  meta: {
-                    title: 'menus.system.menu321',
-                    keepAlive: true
-                  }
-                }
-              ]
-            }
-          ]
-        }
-      ]
+        title: 'menus.system.permission',
+        keepAlive: true,
+        roles: ['R_SUPER']
+      }
+    },
+    {
+      path: 'dict',
+      name: 'Dict',
+      component: '/system/dict',
+      meta: {
+        title: 'menus.system.dict',
+        keepAlive: true,
+        roles: ['R_SUPER', 'R_ADMIN']
+      }
     }
   ]
 }

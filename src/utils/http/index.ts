@@ -64,8 +64,34 @@ const axiosInstance = axios.create({
 /** 请求拦截器 */
 axiosInstance.interceptors.request.use(
   (request: InternalAxiosRequestConfig) => {
-    const { accessToken } = useUserStore()
+    const userStore = useUserStore()
+
+    // Pinia 中 ref 会自动解包，直接访问 info 而不是 info.value
+    const userInfo = userStore.info
+
+    // 添加 Token
+    const { accessToken } = userStore
     if (accessToken) request.headers.set('Authorization', accessToken)
+
+    // 所有请求都自动添加 storeId（如果有）
+    const storeId = userInfo?.storeId
+    const type = userInfo?.type
+
+    // 开发环境下打印日志（非用户信息接口）
+    if (import.meta.env.DEV && !request.url?.includes('/admin/user/info')) {
+      console.log('🔍 拦截器 - 请求:', {
+        url: request.url,
+        userInfo,
+        storeId,
+        type,
+        willAddStoreId: !!storeId
+      })
+    }
+
+    if (storeId) {
+      request.params = request.params || {}
+      request.params.storeId = storeId
+    }
 
     if (request.data && !(request.data instanceof FormData) && !request.headers['Content-Type']) {
       request.headers.set('Content-Type', 'application/json')

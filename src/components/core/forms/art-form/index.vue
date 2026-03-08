@@ -117,6 +117,7 @@
     ElTreeSelect,
     type FormInstance
   } from 'element-plus'
+  import ArtCutterImg from '@/components/core/media/art-cutter-img/index.vue'
   import { calculateResponsiveSpan, type ResponsiveBreakpoint } from '@/utils/form/responsive'
 
   defineOptions({ name: 'ArtForm' })
@@ -139,7 +140,8 @@
     cascader: ElCascader, // 级联选择器
     timepicker: ElTimePicker, // 时间选择器
     timeselect: ElTimeSelect, // 时间选择
-    treeselect: ElTreeSelect // 树选择器
+    treeselect: ElTreeSelect, // 树选择器
+    'upload-img': ArtCutterImg // 图片上传(裁剪)
   }
 
   const { width } = useWindowSize()

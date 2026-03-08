@@ -21,8 +21,8 @@
           placeholder="请输入角色描述"
         />
       </ElFormItem>
-      <ElFormItem label="启用">
-        <ElSwitch v-model="form.enabled" />
+      <ElFormItem label="状态">
+        <ElSwitch v-model="form.status" :active-value="1" :inactive-value="0" />
       </ElFormItem>
     </ElForm>
     <template #footer>
@@ -34,6 +34,7 @@
 
 <script setup lang="ts">
   import type { FormInstance, FormRules } from 'element-plus'
+  import { fetchAddRole, fetchUpdateRole } from '@/api/system/role'
 
   type RoleListItem = Api.SystemManage.RoleListItem
 
@@ -77,20 +78,19 @@
     roleCode: [
       { required: true, message: '请输入角色编码', trigger: 'blur' },
       { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
-    ],
-    description: [{ required: true, message: '请输入角色描述', trigger: 'blur' }]
+    ]
+    // description 字段根据后端定义为可选
   })
 
   /**
    * 表单数据
    */
-  const form = reactive<RoleListItem>({
-    roleId: 0,
+  const form = reactive({
+    id: null as number | null,
     roleName: '',
     roleCode: '',
     description: '',
-    createTime: '',
-    enabled: true
+    status: 1
   })
 
   /**
@@ -116,19 +116,26 @@
 
   /**
    * 初始化表单数据
-   * 根据弹窗类型填充表单或重置表单
+   * 根据是否有角色数据来判断是编辑还是新增
    */
   const initForm = () => {
-    if (props.dialogType === 'edit' && props.roleData) {
-      Object.assign(form, props.roleData)
-    } else {
+    if (props.roleData) {
+      // 编辑模式：填充现有数据
       Object.assign(form, {
-        roleId: 0,
+        id: props.roleData.id ?? null,
+        roleName: props.roleData.roleName,
+        roleCode: props.roleData.roleCode,
+        description: props.roleData.description ?? '',
+        status: props.roleData.status
+      })
+    } else {
+      // 新增模式：重置表单
+      Object.assign(form, {
+        id: null, // 统一使用 id 字段
         roleName: '',
         roleCode: '',
         description: '',
-        createTime: '',
-        enabled: true
+        status: 1
       })
     }
   }
@@ -150,9 +157,25 @@
 
     try {
       await formRef.value.validate()
-      // TODO: 调用新增/编辑接口
-      const message = props.dialogType === 'add' ? '新增成功' : '修改成功'
-      ElMessage.success(message)
+
+      // 准备提交数据 - 严格按照后端 AdminRole 实体类定义
+      const submitData = {
+        id: form.id || undefined,
+        roleName: form.roleName,
+        roleCode: form.roleCode,
+        description: form.description,
+        status: form.status
+      }
+
+      // 直接通过ID是否存在判断是新增还是修改
+      if (submitData.id) {
+        await fetchUpdateRole(submitData)
+        ElMessage.success('修改成功')
+      } else {
+        await fetchAddRole(submitData)
+        ElMessage.success('新增成功')
+      }
+
       emit('success')
       handleClose()
     } catch (error) {

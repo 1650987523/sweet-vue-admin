@@ -124,10 +124,34 @@ export interface FastEnterConfig {
   minWidth?: number
 }
 
+// 登录账号配置项
+export interface LoginAccount {
+  /** 账号标签 */
+  label: string
+  /** 用户名 */
+  username: string
+  /** 密码 */
+  password: string
+  /** 角色列表 */
+  roles: string[]
+}
+
+// 登录账号配置
+export interface LoginAccountsConfig {
+  /** 超级管理员账号 */
+  super: LoginAccount
+  /** 管理员账号 */
+  admin: LoginAccount
+  /** 普通用户账号 */
+  user: LoginAccount
+}
+
 // 系统配置
 export interface SystemConfig {
   // 系统基础信息
   systemInfo: SystemBasicConfig
+  // 登录账号配置（开发环境使用）
+  loginAccounts?: LoginAccountsConfig
   // 系统主题样式
   systemThemeStyles: SystemThemeTypes
   // 设置主题列表

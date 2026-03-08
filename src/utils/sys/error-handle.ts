@@ -50,6 +50,14 @@ export function scriptErrorHandler(
   colno?: number,
   error?: Error
 ): boolean {
+  // 过滤 ResizeObserver 循环错误（这是浏览器的已知问题，不影响功能）
+  if (
+    typeof message === 'string' &&
+    message.includes('ResizeObserver loop completed with undelivered notifications')
+  ) {
+    return true // 忽略此错误
+  }
+
   console.error('[ScriptError]', { message, source, lineno, colno, error })
   // reportError({ type: 'script', message, source, lineno, colno, error })
   return true // 阻止默认控制台报错，可根据需求改

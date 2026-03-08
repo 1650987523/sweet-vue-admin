@@ -20,7 +20,25 @@
         <!-- 渲染展开行 -->
         <ElTableColumn v-else-if="col.type === 'expand'" v-bind="cleanColumnProps(col)">
           <template #default="{ row }">
-            <component :is="col.formatter ? col.formatter(row) : null" />
+            <template v-for="result in [col.formatter ? col.formatter(row) : null]" :key="result">
+              <!-- 数组：遍历渲染每个元素 -->
+              <template v-if="Array.isArray(result)">
+                <span v-for="(item, idx) in result" :key="idx">
+                  <template v-if="typeof item === 'string' || typeof item === 'number'">{{
+                    item
+                  }}</template>
+                  <component v-else-if="item !== null && item !== undefined" :is="item" />
+                </span>
+              </template>
+              <!-- 字符串和数字用 span 渲染 -->
+              <span v-else-if="typeof result === 'string' || typeof result === 'number'">{{
+                result
+              }}</span>
+              <!-- null 和 undefined 显示占位符 -->
+              <span v-else-if="result === null || result === undefined">-</span>
+              <!-- 其他情况（VNode、对象）用 component 渲染 -->
+              <component v-else :is="result" />
+            </template>
           </template>
         </ElTableColumn>
 
@@ -34,7 +52,31 @@
               {{ col.label }}
             </slot>
           </template>
-          <template v-if="col.useSlot && col.prop" #default="slotScope">
+          <template v-if="col.formatter" #default="slotScope">
+            <template
+              v-for="result in [col.formatter(slotScope.row, slotScope.column, slotScope.$index)]"
+              :key="result"
+            >
+              <!-- 数组：遍历渲染每个元素 -->
+              <template v-if="Array.isArray(result)">
+                <span v-for="(item, idx) in result" :key="idx">
+                  <template v-if="typeof item === 'string' || typeof item === 'number'">{{
+                    item
+                  }}</template>
+                  <component v-else-if="item !== null && item !== undefined" :is="item" />
+                </span>
+              </template>
+              <!-- 字符串和数字用 span 渲染 -->
+              <span v-else-if="typeof result === 'string' || typeof result === 'number'">{{
+                result
+              }}</span>
+              <!-- null 和 undefined 显示占位符 -->
+              <span v-else-if="result === null || result === undefined">-</span>
+              <!-- 其他情况（VNode、对象）用 component 渲染 -->
+              <component v-else :is="result" />
+            </template>
+          </template>
+          <template v-else-if="col.useSlot && col.prop" #default="slotScope">
             <slot
               :name="col.slotName || col.prop"
               v-bind="{

@@ -74,7 +74,7 @@ export interface ColumnOption<T = any> {
   // 是否选中显示
   checked?: boolean
   // 自定义渲染函数
-  formatter?: (row: T) => any
+  formatter?: (row: T, column?: any, index?: number) => any
   // 插槽相关配置
   // 是否使用插槽渲染内容
   useSlot?: boolean

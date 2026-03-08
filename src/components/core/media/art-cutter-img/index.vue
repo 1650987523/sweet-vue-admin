@@ -2,7 +2,7 @@
 <template>
   <div class="cutter-container">
     <div class="cutter-component">
-      <div class="title">{{ title }}</div>
+      <div class="title" v-if="title">{{ title }}</div>
       <ImgCutter
         ref="imgCutterModal"
         @cutDown="cutDownImg"
@@ -20,14 +20,13 @@
           <ElButton type="danger" plain v-ripple>清除</ElButton>
         </template>
         <template #confirm>
-          <!-- <ElButton type="primary" style="margin-left: 10px">确定</ElButton> -->
-          <div></div>
+          <ElButton type="primary" style="margin-left: 10px">确定</ElButton>
         </template>
       </ImgCutter>
     </div>
 
     <div v-if="showPreview" class="preview-container">
-      <div class="title">{{ previewTitle }}</div>
+      <div class="title" v-if="previewTitle">{{ previewTitle }}</div>
       <div
         class="preview-box"
         :style="{
@@ -37,7 +36,12 @@
       >
         <img class="preview-img" :src="temImgPath" alt="预览图" v-if="temImgPath" />
       </div>
-      <ElButton class="download-btn" @click="downloadImg" :disabled="!temImgPath" v-ripple
+      <ElButton
+        class="download-btn"
+        @click="downloadImg"
+        :disabled="!temImgPath"
+        v-ripple
+        v-if="false"
         >下载图片</ElButton
       >
     </div>
@@ -109,6 +113,7 @@
     previewMode?: boolean
 
     // 输入图片
+    modelValue?: string
     imgUrl?: string
   }
 
@@ -156,10 +161,18 @@
     previewMode: true
   })
 
-  const emit = defineEmits(['update:imgUrl', 'error', 'imageLoadComplete', 'imageLoadError'])
+  const emit = defineEmits([
+    'update:modelValue',
+    'update:imgUrl',
+    'error',
+    'imageLoadComplete',
+    'imageLoadError'
+  ])
 
   const temImgPath = ref('')
   const imgCutterModal = ref()
+
+  const boundValue = computed(() => props.modelValue ?? props.imgUrl ?? '')
 
   // 计算属性：整合所有ImgCutter的props
   const cutterProps = computed(() => ({
@@ -169,49 +182,16 @@
     WatermarkColor: props.watermarkColor
   }))
 
-  // 图片预加载
-  function preloadImage(url: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = () => resolve()
-      img.onerror = reject
-      img.src = url
-    })
-  }
-
-  // 初始化裁剪器
-  async function initImgCutter() {
-    if (props.imgUrl) {
-      try {
-        await preloadImage(props.imgUrl)
-        imgCutterModal.value?.handleOpen({
-          name: '封面图片',
-          src: props.imgUrl
-        })
-      } catch (error) {
-        emit('error', error)
-        console.error('图片加载失败:', error)
-      }
-    }
-  }
-
   // 生命周期钩子
   onMounted(() => {
-    if (props.imgUrl) {
-      temImgPath.value = props.imgUrl
-      initImgCutter()
-    }
+    temImgPath.value = boundValue.value || ''
   })
 
-  // 监听图片URL变化
+  // 监听图片内容变化
   watch(
-    () => props.imgUrl,
+    () => boundValue.value,
     (newVal) => {
-      if (newVal) {
-        temImgPath.value = newVal
-        initImgCutter()
-      }
+      temImgPath.value = newVal || ''
     }
   )
 
@@ -222,6 +202,8 @@
 
   // 裁剪完成
   function cutDownImg(result: CutterResult) {
+    temImgPath.value = result.dataURL
+    emit('update:modelValue', result.dataURL)
     emit('update:imgUrl', result.dataURL)
   }
 
@@ -239,9 +221,11 @@
   // 清除所有
   function handleClearAll() {
     temImgPath.value = ''
+    emit('update:modelValue', '')
+    emit('update:imgUrl', '')
   }
 
-  // 下载图片
+  // 下载图片 (功能保留但隐藏)
   function downloadImg() {
     console.log('下载图片')
     const a = document.createElement('a')
