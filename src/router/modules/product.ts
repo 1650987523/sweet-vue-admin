@@ -84,6 +84,21 @@ export const productRoutes: AppRouteRecord = {
           { title: 'buttons.delete', authMark: 'delete' }
         ]
       }
+    },
+    {
+      path: 'banner',
+      name: 'Banner',
+      component: '/product/banner',
+      meta: {
+        title: 'menus.product.banner',
+        keepAlive: true,
+        roles: ['R_SUPER_ADMIN', 'R_SYS_ADMIN'],
+        authList: [
+          { title: 'buttons.add', authMark: 'add' },
+          { title: 'buttons.edit', authMark: 'edit' },
+          { title: 'buttons.delete', authMark: 'delete' }
+        ]
+      }
     }
   ]
 }

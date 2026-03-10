@@ -252,7 +252,8 @@
       "category": "商品分类管理",
       "qrcode": "桌码管理",
       "store": "门店管理",
-      "attribute": "商品属性管理"
+      "attribute": "商品属性管理",
+      "banner": "轮播图管理"
     },
     "order": {
       "title": "订单管理",

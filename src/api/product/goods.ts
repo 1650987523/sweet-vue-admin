@@ -209,3 +209,15 @@ export function fetchDeleteProductImages(imgUrls: string[]) {
     data: { imgUrls }
   })
 }
+
+/**
+ * 获取商品简单列表（用于轮播图等选择器）
+ * @param storeId - 门店 ID（可选）
+ * @param categoryId - 分类 ID（可选）
+ */
+export function fetchGetGoodsSimpleList(params?: { storeId?: number; categoryId?: number }) {
+  return request.get<Array<{ id: number; categoryId: number; productName: string }>>({
+    url: '/admin/product/simple-list',
+    params
+  })
+}

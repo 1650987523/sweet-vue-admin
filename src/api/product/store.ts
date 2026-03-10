@@ -6,7 +6,7 @@ import { StoreItem, StoreFormParams, StoreQueryParams } from '@/types/store'
  */
 export function fetchGetStoreList(params?: StoreQueryParams) {
   return request.get<StoreItem[]>({
-    url: '/admin/store',
+    url: '/admin/store/list',
     params
   })
 }

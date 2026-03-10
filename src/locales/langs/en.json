@@ -253,7 +253,8 @@
       "category": "Category Manage",
       "qrcode": "QR Code Manage",
       "store": "Store Manage",
-      "attribute": "Product Attribute Manage"
+      "attribute": "Product Attribute Manage",
+      "banner": "Banner Manage"
     }
   },
   "table": {
