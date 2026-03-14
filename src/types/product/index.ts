@@ -247,7 +247,8 @@ export interface QrcodeItem {
   storeName?: string // 门店名称
   qrcodeName: string // 桌号名称
   qrcodeNo: string // 桌码编号
-  qrcodeContent: string // 桌码关联内容
+  qrcodeContent?: string // 桌码关联内容（非必填）
+  qrcodeInfo?: QrcodeInfo // 微信二维码参数对象
   qrcodeUrl?: string // 桌码 URL
   status: number // 状态：0-禁用 1-正常 2-维护中
   isVip: boolean // 是否 VIP 桌
@@ -259,6 +260,19 @@ export interface QrcodeItem {
 }
 
 /**
+ * 微信二维码参数
+ */
+export interface QrcodeInfo {
+  scene: string // 场景值
+  page: string // 小程序页面路径
+  checkPath?: boolean // 是否检查 page 是否存在
+  envVersion?: string // 小程序版本
+  width?: number // 二维码宽度
+  autoColor?: boolean // 是否自动配置线条颜色
+  isHyaline?: boolean // 是否透明底色
+}
+
+/**
  * 桌码表单参数
  */
 export interface QrcodeFormParams {
@@ -266,7 +280,8 @@ export interface QrcodeFormParams {
   storeId?: number
   qrcodeName: string
   qrcodeNo: string
-  qrcodeContent: string
+  qrcodeContent?: string
+  qrcodeInfo?: QrcodeInfo // 微信二维码参数对象
   qrcodeUrl?: string
   status?: number
   isVip?: boolean

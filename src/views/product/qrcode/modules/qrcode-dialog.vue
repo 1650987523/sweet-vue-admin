@@ -2,7 +2,7 @@
   <ElDialog
     v-model="visible"
     :title="dialogType === 'add' ? '新增桌码' : '编辑桌码'"
-    width="500px"
+    width="520px"
     align-center
     @closed="handleClosed"
   >
@@ -11,23 +11,51 @@
       v-model="form"
       :items="formItems"
       :rules="rules"
-      :label-width="100"
+      :label-width="110"
       :show-reset="false"
       :show-submit="false"
     >
+      <template #qrcodeInfo>
+        <div class="qrcode-info">
+          <div class="qrcode-input-row">
+            <ElInput
+              v-model="qrcodeInfoForm.scene"
+              placeholder="如：1-A03"
+              :disabled="props.dialogType === 'edit'"
+              @change="handleSceneChange"
+            >
+              <template #prepend>scene</template>
+            </ElInput>
+            <ElSelect
+              v-model="qrcodeInfoForm.envVersion"
+              placeholder="选择版本"
+              style="width: 130px"
+              @change="handleQrcodeInfoChange"
+            >
+              <ElOption label="开发版 (develop)" value="develop" />
+              <ElOption label="体验版 (trial)" value="trial" />
+              <ElOption label="正式版 (release)" value="release" />
+            </ElSelect>
+          </div>
+          <ElInput
+            v-model="qrcodeInfoForm.page"
+            placeholder="如：pages/scan/index"
+            @change="handleQrcodeInfoChange"
+          >
+            <template #prepend>page</template>
+          </ElInput>
+          <ElButton type="primary" :loading="generating" @click="handleGenerateQrcode">
+            {{ generating ? '生成中...' : '生成二维码' }}
+          </ElButton>
+        </div>
+      </template>
       <template #qrcodePreview>
         <div class="qrcode-preview">
           <div v-if="qrcodeUrlSrc" class="qrcode-image">
             <img class="qrcode-img" :src="qrcodeUrlSrc" alt="桌码二维码" />
           </div>
           <div v-else class="qrcode-image">
-            <span class="qrcode-empty">后端未返回二维码链接</span>
-          </div>
-          <div class="qrcode-actions">
-            <ElButton :disabled="!qrcodeValue" @click="handleCopyContent">复制内容</ElButton>
-            <ElButton type="primary" :disabled="!qrcodeValue" @click="handleOpenContent">
-              打开链接
-            </ElButton>
+            <span class="qrcode-empty">请点击"生成二维码"按钮</span>
           </div>
         </div>
       </template>
@@ -47,7 +75,7 @@
   import type { FormRules } from 'element-plus'
   import ArtForm from '@/components/core/forms/art-form/index.vue'
   import type { FormItem } from '@/components/core/forms/art-form/index.vue'
-  import { fetchAddQrcode, fetchUpdateQrcode } from '@/api/product/qrcode'
+  import { fetchAddQrcode, fetchUpdateQrcode, fetchGenerateWxQrcode } from '@/api/product/qrcode'
   import { fetchGetStoreList } from '@/api/product/store'
   import { useUserStore } from '@/store/modules/user'
   import type { QrcodeFormParams, QrcodeItem } from '@/types/product'
@@ -92,6 +120,7 @@
     qrcodeName: '',
     qrcodeNo: '',
     qrcodeContent: '',
+    qrcodeInfo: undefined,
     status: 1,
     isVip: false,
     maxPeople: 4,
@@ -102,13 +131,24 @@
   const rules: FormRules = {
     qrcodeName: [{ required: true, message: '请输入桌号名称', trigger: 'blur' }],
     qrcodeNo: [{ required: true, message: '请输入桌码编号', trigger: 'blur' }],
-    qrcodeContent: [{ required: true, message: '请输入桌码关联内容', trigger: 'blur' }],
     storeId: [{ required: true, message: '请选择所属门店', trigger: 'change' }]
   }
 
+  // 二维码参数表单
+  const qrcodeInfoForm = reactive({
+    scene: '',
+    page: '',
+    envVersion: 'develop'
+  })
+
+  // 记录 scene 是否是用户手动修改过的
+  const isSceneManual = ref(false)
+
+  // 生成中状态
+  const generating = ref(false)
+
   const qrcodeUrl = ref('')
 
-  const qrcodeValue = computed(() => (form.qrcodeContent || '').trim())
   const qrcodeUrlSrc = computed(() => {
     if (!qrcodeUrl.value) return ''
     if (qrcodeUrl.value.startsWith('data:') || qrcodeUrl.value.startsWith('http'))
@@ -116,32 +156,69 @@
     return `data:image/png;base64,${qrcodeUrl.value}`
   })
 
-  const handleCopyContent = async () => {
-    const text = qrcodeValue.value
-    if (!text) return
-    try {
-      await navigator.clipboard.writeText(text)
-      ElMessage.success('已复制')
-    } catch {
-      // 降级策略
-      const textarea = document.createElement('textarea')
-      textarea.value = text
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-      ElMessage.success('已复制')
+  // 更新 qrcodeInfo 对象
+  const handleQrcodeInfoChange = () => {
+    form.qrcodeInfo = {
+      scene: qrcodeInfoForm.scene.trim(),
+      page: qrcodeInfoForm.page.trim(),
+      checkPath: false,
+      envVersion: qrcodeInfoForm.envVersion || 'develop',
+      width: 430,
+      autoColor: true,
+      isHyaline: true
     }
   }
 
-  const handleOpenContent = () => {
-    const text = qrcodeValue.value
-    if (!text) return
-    if (text.startsWith('http')) {
-      window.open(text, '_blank')
+  // 监听用户手动修改 scene
+  const handleSceneChange = () => {
+    isSceneManual.value = true
+    handleQrcodeInfoChange()
+  }
+
+  // 生成微信小程序码
+  const handleGenerateQrcode = async () => {
+    const storeId = form.storeId || userStoreId.value
+    if (!storeId) {
+      ElMessage.warning('请先选择所属门店')
       return
     }
-    ElMessage.warning('跳转内容不是链接')
+    if (!form.qrcodeNo) {
+      ElMessage.warning('请先填写桌码编号')
+      return
+    }
+
+    generating.value = true
+    try {
+      // 使用 qrcodeInfo 对象或默认值
+      const payload = {
+        scene: form.qrcodeInfo?.scene || qrcodeInfoForm.scene,
+        page: form.qrcodeInfo?.page || qrcodeInfoForm.page,
+        checkPath: false,
+        envVersion: qrcodeInfoForm.envVersion || 'develop',
+        width: 430,
+        autoColor: true,
+        isHyaline: true,
+        storeId,
+        qrcodeNo: form.qrcodeNo
+      }
+
+      // 调用生成接口
+      // 注意：request 封装返回的是 res.data.data，不是 res.data
+      // 后端返回 { code: 0, data: "url", success: true }，res.data.data = "url"
+      const res = (await fetchGenerateWxQrcode(storeId, form.qrcodeNo, payload)) as any
+      console.log('生成二维码返回 (res.data.data):', res)
+      // res 直接就是 URL 字符串
+      qrcodeUrl.value = typeof res === 'string' ? res : ''
+      console.log('qrcodeUrl.value:', qrcodeUrl.value)
+      ElMessage.success('二维码生成成功')
+      // 注意：不在这里 emit('success')，因为还没保存
+      // 只有保存成功后才 emit('success')
+    } catch (error) {
+      console.error(error)
+      ElMessage.error('二维码生成失败')
+    } finally {
+      generating.value = false
+    }
   }
 
   const formItems = computed<FormItem[]>(() => [
@@ -175,14 +252,19 @@
       key: 'qrcodeContent',
       type: 'textarea',
       span: 24,
-      props: { placeholder: '请输入跳转内容（如：https://...）' }
+      props: { placeholder: '请输入跳转内容（选填）' }
+    },
+    {
+      label: '二维码参数',
+      key: 'qrcodeInfo',
+      type: 'custom',
+      span: 24
     },
     {
       label: '桌码二维码',
       key: 'qrcodePreview',
-      type: 'input',
-      span: 24,
-      hidden: props.dialogType === 'add'
+      type: 'custom',
+      span: 24
     },
     {
       label: '状态',
@@ -199,7 +281,7 @@
       }
     },
     {
-      label: '是否VIP桌',
+      label: '是否 VIP 桌',
       key: 'isVip',
       type: 'switch',
       span: 12,
@@ -210,20 +292,52 @@
     { label: '备注', key: 'remark', type: 'textarea', span: 24 }
   ])
 
+  // 填充表单
   const fillForm = (data?: QrcodeItem) => {
+    // 重置手动修改标志
+    isSceneManual.value = false
+
     Object.assign(form, {
       id: data?.id,
-      // 新增时：如果用户有 storeId 则自动赋值，否则使用数据中的 storeId
       storeId: props.dialogType === 'add' ? userStoreId.value || data?.storeId : data?.storeId,
       qrcodeName: data?.qrcodeName ?? '',
       qrcodeNo: data?.qrcodeNo ?? '',
       qrcodeContent: data?.qrcodeContent ?? '',
+      qrcodeInfo: data?.qrcodeInfo ? { ...data.qrcodeInfo } : undefined,
       status: data?.status ?? 1,
       isVip: data?.isVip ?? false,
       maxPeople: data?.maxPeople ?? 4,
       area: data?.area ?? '',
       remark: data?.remark ?? ''
     })
+
+    // 从 qrcodeInfo 对象填充子表单
+    if (data?.qrcodeInfo) {
+      qrcodeInfoForm.scene = data.qrcodeInfo.scene || ''
+      qrcodeInfoForm.page = data.qrcodeInfo.page || ''
+      qrcodeInfoForm.envVersion = data.qrcodeInfo.envVersion || 'develop'
+      // 编辑模式下，如果已有 qrcodeInfo，标记为非手动修改（因为是从后端获取的）
+      if (props.dialogType === 'edit') {
+        isSceneManual.value = false
+      }
+    } else {
+      // 新增时设置默认值
+      qrcodeInfoForm.page = 'pages/scan/index'
+      qrcodeInfoForm.envVersion = 'develop'
+      // 如果有 storeId 和 qrcodeNo，自动生成 scene（格式：storeId-qrcodeNo）
+      const storeId = form.storeId || userStoreId.value
+      if (storeId && form.qrcodeNo) {
+        qrcodeInfoForm.scene = `${storeId}-${form.qrcodeNo}`
+      } else {
+        // 如果只有 storeId，先设置 scene 为 storeId- 等待用户填写 qrcodeNo
+        if (storeId) {
+          qrcodeInfoForm.scene = `${storeId}-`
+        } else {
+          qrcodeInfoForm.scene = ''
+        }
+      }
+    }
+
     qrcodeUrl.value = data?.qrcodeUrl ?? ''
   }
 
@@ -258,6 +372,25 @@
     }
   )
 
+  // 监听 storeId 和 qrcodeNo 变化，自动更新 scene（仅当用户未手动修改时）
+  watch(
+    () => [form.storeId, form.qrcodeNo],
+    ([storeId, qrcodeNo]) => {
+      if (props.dialogType === 'add' && !isSceneManual.value) {
+        if (storeId && qrcodeNo) {
+          // scene 格式：1-A03（storeId-qrcodeNo，使用短横线连接）
+          qrcodeInfoForm.scene = `${storeId}-${qrcodeNo}`
+          handleQrcodeInfoChange()
+        } else if (storeId) {
+          // 只有 storeId 时，设置 scene 为 storeId- 等待用户填写 qrcodeNo
+          qrcodeInfoForm.scene = `${storeId}-`
+          handleQrcodeInfoChange()
+        }
+      }
+    },
+    { deep: true }
+  )
+
   const handleClosed = () => {
     formRef.value?.reset()
     fillForm()
@@ -272,18 +405,32 @@
     try {
       await formRef.value.validate()
 
-      // 构造提交参数
-      const payload: QrcodeFormParams = { ...form }
+      // 构造提交参数（包含 qrcodeInfo 对象和 qrcodeUrl）
+      const payload: QrcodeFormParams = {
+        ...form,
+        qrcodeInfo: form.qrcodeInfo || {
+          scene: qrcodeInfoForm.scene || `${form.storeId || ''}-${form.qrcodeNo}`,
+          page: qrcodeInfoForm.page || 'pages/scan/index',
+          checkPath: false,
+          envVersion: 'develop',
+          width: 430,
+          autoColor: true,
+          isHyaline: true
+        },
+        qrcodeUrl: qrcodeUrl.value || undefined
+      }
 
       if (props.dialogType === 'add') {
         await fetchAddQrcode(payload)
         ElMessage.success('新增成功')
+        emit('success')
+        visible.value = false
       } else {
         await fetchUpdateQrcode(payload)
         ElMessage.success('修改成功')
+        emit('success')
+        visible.value = false
       }
-      emit('success')
-      visible.value = false
     } catch (error) {
       console.error(error)
     }
@@ -291,6 +438,22 @@
 </script>
 
 <style lang="scss" scoped>
+  .qrcode-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    :deep(.el-input-group__prepend) {
+      width: 70px;
+      font-weight: 600;
+    }
+  }
+
+  .qrcode-input-row {
+    display: flex;
+    gap: 12px;
+  }
+
   .qrcode-preview {
     display: flex;
     flex-direction: column;
@@ -316,10 +479,5 @@
   .qrcode-empty {
     font-size: 12px;
     color: var(--el-text-color-secondary);
-  }
-
-  .qrcode-actions {
-    display: flex;
-    gap: 10px;
   }
 </style>

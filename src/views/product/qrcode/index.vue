@@ -144,7 +144,21 @@
         },
         { prop: 'qrcodeName', label: '桌号名称', minWidth: 150 },
         { prop: 'qrcodeNo', label: '桌码编号', minWidth: 160, showOverflowTooltip: true },
-        { prop: 'qrcodeContent', label: '跳转内容', minWidth: 200, showOverflowTooltip: true },
+        {
+          prop: 'qrcodeInfo',
+          label: '跳转内容',
+          minWidth: 220,
+          formatter: (row: QrcodeItem) => {
+            const { qrcodeInfo } = row
+            if (!qrcodeInfo) return '-'
+            const { scene, page, envVersion } = qrcodeInfo
+            return h('div', { style: { fontSize: '12px', lineHeight: '1.6' } }, [
+              h('div', null, `scene: ${scene}`),
+              h('div', null, `page: ${page}`),
+              h('div', { style: { color: '#999', fontSize: '11px' } }, `env: ${envVersion}`)
+            ])
+          }
+        },
         {
           prop: 'qrcodeUrl',
           label: '二维码',

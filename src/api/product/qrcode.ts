@@ -40,3 +40,14 @@ export function fetchDeleteQrcode(id: number) {
     url: `/admin/table-qrcode/${id}`
   })
 }
+
+/**
+ * 生成微信小程序码
+ */
+export function fetchGenerateWxQrcode(storeId: number, qrcodeNo: string, data?: any) {
+  return request.post({
+    url: '/admin/table-qrcode/generate/qrcode',
+    params: { storeId, qrcodeNo },
+    data
+  })
+}
