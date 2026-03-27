@@ -14,6 +14,7 @@
       <ElFormItem label="父级部门" prop="parentId">
         <ElSelect
           v-model="formData.parentId"
+          value-key="id"
           placeholder="请选择父级部门"
           clearable
           filterable
@@ -79,7 +80,7 @@
   const deptList = ref<AdminDeptItem[]>([])
   const formData = reactive<AdminDeptFormParams>({
     departmentName: '',
-    parentId: '',
+    parentId: null,
     status: 1,
     remark: ''
   })
@@ -125,28 +126,25 @@
     // 将树形结构扁平化
     const flatList = flattenTree(deptList.value)
 
-    const options: Array<{ id: string; departmentName: string }> = [
-      { id: '', departmentName: '顶级部门' },
-      ...flatList
-        .filter((item) => String(item.id) !== String(props.deptData?.id))
-        .map((item) => ({ id: String(item.id!), departmentName: item.departmentName }))
+    const options: AdminDeptItem[] = [
+      { id: 0, departmentName: '顶级部门', parentId: null, status: 1 },
+      ...flatList.filter((item) => item.id !== props.deptData?.id)
     ]
     return options
   })
 
   const initFormData = () => {
-    const isEdit = !!props.deptData?.id // 通过ID判断是否为编辑模式
-    if (isEdit && props.deptData) {
+    if (props.type === 'edit' && props.deptData) {
       Object.assign(formData, {
         departmentName: props.deptData.departmentName || '',
-        parentId: props.deptData.parentId || '',
+        parentId: props.deptData.parentId ?? null,
         status: props.deptData.status ?? 1,
         remark: props.deptData.remark || ''
       })
     } else {
       Object.assign(formData, {
         departmentName: '',
-        parentId: '',
+        parentId: null,
         status: 1,
         remark: ''
       })
@@ -173,15 +171,14 @@
         try {
           loading.value = true
 
-          // 准备提交数据，将 parentId 转换为数字类型（如果不为空）
           const submitData: AdminDeptFormParams = {
-            ...formData,
-            parentId: formData.parentId === '' ? '' : String(formData.parentId)
+            departmentName: formData.departmentName,
+            parentId: formData.parentId ?? null,
+            status: formData.status,
+            remark: formData.remark
           }
 
-          const isEdit = !!props.deptData?.id // 通过ID判断是否为编辑模式
-
-          if (!isEdit) {
+          if (props.type === 'add') {
             await fetchAddDept(submitData)
             ElMessage.success('新增部门成功')
           } else {

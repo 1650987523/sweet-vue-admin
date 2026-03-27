@@ -258,7 +258,7 @@
     "order": {
       "title": "订单管理",
       "orderManage": "订单管理",
-      "orderDetail": "订单明细管理"
+      "refundManage": "退款管理"
     }
   },
   "table": {

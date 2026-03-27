@@ -84,6 +84,7 @@ declare namespace Api {
       email: string
       avatar?: string
       realName?: string
+      nickname?: string
       mobile?: string
       gender?: number
       address?: string
@@ -175,18 +176,28 @@ declare namespace Api {
       discountAmount?: number
       actualAmount?: number
       shippingAddress?: string
+      deliveryAddr?: string
       receiverName?: string
       receiverPhone?: string
       remark?: string
+      refundStatus?: number
       createTime?: string
       updateTime?: string
+      storeId?: number
+      storeName?: string
+      tableNo?: string
+      userInfo?: {
+        nickname?: string
+        mobile?: string
+      }
     }
 
     /** 订单搜索参数 */
     interface OrderSearchParams {
-      current?: number
-      size?: number
+      pageNo?: number
+      pageSize?: number
       orderNo?: string
+      storeName?: string
       orderStatus?: number
       paymentStatus?: number
       startDate?: string
@@ -213,9 +224,10 @@ declare namespace Api {
 
     /** 订单明细搜索参数 */
     interface OrderDetailSearchParams {
-      current?: number
-      size?: number
+      pageNo?: number
+      pageSize?: number
       orderId?: number
+      orderNo?: string
     }
 
     /** 订单明细列表 */
@@ -235,11 +247,99 @@ declare namespace Api {
       skuId?: number
       skuName?: string
       skuSpec?: string
+      skuSpecs?: Array<{
+        attrId: number
+        attrName: string
+        attrValueId: number
+        value: string
+      }>
+      skuImages?: Array<{
+        url: string
+        sort: number
+        description?: string | null
+      }>
+      attriValue?: string[] | string
       price: number
       quantity: number
       subtotal: number
       createTime?: string
       updateTime?: string
+    }
+
+    /** 订单详情 VO（包含订单主表和明细列表） */
+    interface OrderDetailVo {
+      orderMain: OrderListItem
+      orderDetails: OrderDetailListItem[]
+      userInfo?: UserInfo
+    }
+
+    /** 退款申请列表项 */
+    interface RefundListItem {
+      id: number
+      refundNo: string
+      orderNo: string
+      userId?: string
+      storeId?: number
+      orderAmount?: number
+      refundAmount?: number
+      refundType?: number
+      refundReason?: string
+      refundStatus?: number
+      refundImages?: string[]
+      refundDesc?: string
+      refundFailReason?: string
+      actualRefundAmount?: number
+      auditUserId?: number
+      auditUserName?: string
+      auditRemark?: string
+      auditTime?: string
+      refundSuccessTime?: string
+      createTime?: string
+      createBy?: string
+      updateTime?: string
+      updateBy?: string
+    }
+
+    /** 退款申请搜索参数 */
+    interface RefundSearchParams {
+      pageNo?: number
+      pageSize?: number
+      refundNo?: string
+      orderNo?: string
+      refundType?: number
+      refundStatus?: number
+      startDate?: string
+      endDate?: string
+    }
+
+    /** 退款审核表单参数 */
+    interface RefundAuditFormParams {
+      refundNo: string
+      orderNo: string
+      auditStatus: number
+      auditReason: string
+      refundAmount?: number
+    }
+
+    /** 退款申请参数 */
+    interface RefundApplyParams {
+      orderNo: string // 订单编号
+      userId?: number // 用户 ID
+      storeId?: number // 门店 ID
+      orderAmount: number // 订单总金额（单位：分）
+      refundAmount: number // 申请退款金额（单位：分）
+      refundType?: number // 退款类型（1=门店后台发起，2=用户发起）
+      refundReason: string // 退款原因
+    }
+
+    /** 退款表单参数（新增/编辑） */
+    interface RefundFormParams {
+      id?: number
+      refundNo?: string
+      orderNo?: string
+      refundAmount?: number
+      refundReason?: string
+      refundStatus?: number
     }
   }
 }

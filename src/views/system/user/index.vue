@@ -44,6 +44,13 @@
         :user-data="currentUserData"
         @success="handleRoleDialogSuccess"
       />
+
+      <!-- 分配部门弹窗 -->
+      <UserDeptDialog
+        v-model:visible="deptDialogVisible"
+        :user-data="currentUserData"
+        @success="handleDeptDialogSuccess"
+      />
     </ElCard>
   </div>
 </template>
@@ -60,6 +67,7 @@
   import UserSearch from './modules/user-search.vue'
   import UserDialog from './modules/user-dialog.vue'
   import UserRoleDialog from './modules/user-role-dialog.vue'
+  import UserDeptDialog from './modules/user-dept-dialog.vue'
   import { ElTag, ElMessageBox, ElImage } from 'element-plus'
   import { DialogType } from '@/types'
 
@@ -112,10 +120,13 @@
     return map
   })
 
+  // 部门名称缓存（按 userId 分组）- 已移除，表格中不再显示所属部门
+
   // 弹窗相关
   const dialogType = ref<DialogType>('add')
   const dialogVisible = ref(false)
   const roleDialogVisible = ref(false)
+  const deptDialogVisible = ref(false)
   const currentUserData = ref<Partial<UserListItem>>({})
 
   // 选中行
@@ -199,15 +210,13 @@
         {
           prop: 'userInfo',
           label: '用户名',
-          width: 280,
-          // visible: false, // 默认是否显示列
-          formatter: (row) => {
-            return h('div', { class: 'user flex-c' }, [
+          width: 120,
+          formatter: (row) =>
+            h('div', { class: 'user flex-c' }, [
               h(ElImage, {
                 class: 'size-9.5 rounded-md',
                 src: row.avatar,
                 previewSrcList: [row.avatar],
-                // 图片预览是否插入至 body 元素上，用于解决表格内部图片预览样式异常
                 previewTeleported: true
               }),
               h('div', { class: 'ml-2' }, [
@@ -215,18 +224,18 @@
                 h('p', { class: 'email' }, row.email)
               ])
             ])
-          }
         },
         {
           prop: 'gender',
           label: '性别',
+          width: 80,
           sortable: true,
           formatter: (row) => {
             const genderConfig = getUserGenderConfig(row.gender)
             return h(ElTag, { type: genderConfig.type }, () => genderConfig.text)
           }
         },
-        { prop: 'mobile', label: '手机号' },
+        { prop: 'mobile', label: '手机号', width: 150 },
         {
           prop: 'storeId',
           label: '所属门店',
@@ -261,6 +270,7 @@
         {
           prop: 'createTime',
           label: '创建日期',
+          width: 150,
           sortable: true
         },
         {
@@ -272,6 +282,11 @@
             h('div', [
               h(ArtButtonMore, {
                 list: [
+                  {
+                    key: 'dept',
+                    label: '分配部门',
+                    icon: 'ri:folder-user-line'
+                  },
                   {
                     key: 'role',
                     label: '分配角色',
@@ -306,12 +321,10 @@
         }
 
         // 使用本地头像替换接口返回的头像
-        return records.map((item, index: number) => {
-          return {
-            ...item,
-            avatar: ACCOUNT_TABLE_DATA[index % ACCOUNT_TABLE_DATA.length].avatar
-          }
-        })
+        return records.map((item, index: number) => ({
+          ...item,
+          avatar: ACCOUNT_TABLE_DATA[index % ACCOUNT_TABLE_DATA.length].avatar
+        }))
       }
     }
   })
@@ -332,6 +345,9 @@
    */
   const handleButtonMoreClick = (item: ButtonMoreItem, row: UserListItem) => {
     switch (item.key) {
+      case 'dept':
+        showDeptDialog(row)
+        break
       case 'role':
         showRoleDialog(row)
         break
@@ -363,6 +379,16 @@
     currentUserData.value = row
     nextTick(() => {
       roleDialogVisible.value = true
+    })
+  }
+
+  /**
+   * 显示分配部门弹窗
+   */
+  const showDeptDialog = (row: UserListItem): void => {
+    currentUserData.value = row
+    nextTick(() => {
+      deptDialogVisible.value = true
     })
   }
 
@@ -404,6 +430,16 @@
    */
   const handleRoleDialogSuccess = async () => {
     roleDialogVisible.value = false
+    currentUserData.value = {}
+    // 刷新用户列表
+    await refreshData()
+  }
+
+  /**
+   * 处理分配部门成功事件
+   */
+  const handleDeptDialogSuccess = async () => {
+    deptDialogVisible.value = false
     currentUserData.value = {}
     // 刷新用户列表
     await refreshData()

@@ -7,7 +7,7 @@
         <ElDropdownMenu>
           <template v-for="item in list" :key="item.key">
             <ElDropdownItem
-              v-if="!item.auth || hasAuth(item.auth)"
+              v-if="!item.hidden && (!item.auth || hasAuth(item.auth))"
               :disabled="item.disabled"
               @click="handleClick(item)"
             >

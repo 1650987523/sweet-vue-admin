@@ -319,7 +319,7 @@
                       :value="attr.attrName"
                     >
                       <span>{{ attr.attrName }}</span>
-                      <span style="float: right; color: #8492a6; font-size: 13px">
+                      <span style="float: right; font-size: 13px; color: #8492a6">
                         {{ attr.attrValues?.join(', ') }}
                       </span>
                     </ElOption>
@@ -1050,6 +1050,41 @@
     previewVisible.value = true
   }
 
+  /**
+   * 根据 SKU 中的 specs 重新计算 attributeRelations
+   * 确保 attributeRelations 包含所有 SKU 中用到的属性
+   */
+  const calculateAttributeRelations = () => {
+    if (!form.skus || form.skus.length === 0) {
+      form.attributeRelations = []
+      return
+    }
+
+    const attrValueMap = new Map<number, Set<number>>()
+    form.skus.forEach((sku) => {
+      sku.specs?.forEach((spec: any) => {
+        if (!attrValueMap.has(spec.attributeId)) {
+          attrValueMap.set(spec.attributeId, new Set())
+        }
+        attrValueMap.get(spec.attributeId)!.add(spec.attributeValueId)
+      })
+    })
+
+    const relations: any[] = []
+    let sortIndex = 0
+    attrValueMap.forEach((valueIds, attributeId) => {
+      valueIds.forEach((attributeValueId) => {
+        relations.push({
+          attributeId,
+          attributeValueId,
+          required: true,
+          sort: sortIndex++
+        })
+      })
+    })
+    form.attributeRelations = relations
+  }
+
   // 加载表单数据
   const loadFormData = async () => {
     if (props.dialogType === 'edit' && props.editData?.id) {
@@ -1063,9 +1098,6 @@
 
       const product = isDetailResponse(res) ? res.product : res
       const skuList = isDetailResponse(res) ? res.skus || [] : []
-      const attributeRelations = isDetailResponse(res)
-        ? res.attributeRelations || []
-        : res.attributeRelations || []
 
       // 先设置 storeId，用于后续加载分类树和属性列表
       form.storeId = product.storeId
@@ -1095,16 +1127,11 @@
       form.isRecommend = product.isRecommend ?? false
       form.isNew = product.isNew ?? false
       form.categoryId = product.categoryId
-      // attributeRelations 的 required 字段转换：1 -> true, 0 -> false
-      form.attributeRelations = attributeRelations.map((item: any) => ({
-        ...item,
-        required: item.required === 1
-      }))
 
       // 从 skus 中构建 SKU 列表（带 specs）
       form.skus = skuList.map((item: any) => {
         const sku = item || {}
-        // 从 attributeRelations 中构建 specs
+        // 从 SKU 的 attributeRelations 中构建 specs
         const specs = (item.attributeRelations || []).map((rel: any) => {
           // 从 attributeList 中查找属性名和属性值
           const attr = attributeList.value.find((a) => a.id === rel.attributeId)
@@ -1138,6 +1165,9 @@
         })
         selectedSpecAttrs.value = Array.from(specNamesSet)
       }
+
+      // 根据 SKU 数据重新计算 attributeRelations
+      calculateAttributeRelations()
 
       // 初始化上传文件列表
       uploadFileList.value = (product.images || []).map((img: any, index: number) => ({
@@ -1232,6 +1262,11 @@
     } catch {
       ElMessage.warning('请填写所有必填项')
       return
+    }
+
+    // 如果有 SKU，重新计算 attributeRelations，确保与 SKU 中的属性一致
+    if (form.skus && form.skus.length > 0) {
+      calculateAttributeRelations()
     }
 
     const submitData: any = {
@@ -1347,25 +1382,25 @@
     }
 
     // 响应式宽度
-    @media (max-width: 1440px) {
+    @media (width <= 1440px) {
       :deep(.el-dialog) {
         width: 1200px !important;
       }
     }
 
-    @media (max-width: 1300px) {
+    @media (width <= 1300px) {
       :deep(.el-dialog) {
         width: 1000px !important;
       }
     }
 
-    @media (max-width: 992px) {
+    @media (width <= 992px) {
       :deep(.el-dialog) {
         width: 800px !important;
       }
     }
 
-    @media (max-width: 768px) {
+    @media (width <= 768px) {
       :deep(.el-dialog) {
         width: 95% !important;
         max-width: 600px;
@@ -1393,8 +1428,8 @@
       }
 
       &.is-active {
-        color: var(--el-color-primary);
         font-weight: 500;
+        color: var(--el-color-primary);
 
         .tab-icon {
           color: var(--el-color-primary);
@@ -1414,24 +1449,24 @@
 
   .tab-label {
     display: flex;
-    align-items: center;
     gap: 8px;
+    align-items: center;
 
     .tab-icon {
-      width: 20px;
-      height: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
+      width: 20px;
+      height: 20px;
       border-radius: 6px;
       transition: all 0.3s ease;
     }
   }
 
   .tab-content {
-    padding: 24px;
     min-height: 500px;
     max-height: 650px;
+    padding: 24px;
     overflow-y: auto;
 
     // 自定义滚动条样式
@@ -1463,16 +1498,16 @@
     }
 
     // 小屏幕下减少 padding
-    @media (max-width: 768px) {
+    @media (width <= 768px) {
       padding: 16px;
     }
   }
 
   .form-tip {
+    display: block;
+    margin-top: 8px;
     font-size: 12px;
     color: var(--el-text-color-secondary);
-    margin-top: 8px;
-    display: block;
 
     p {
       margin: 6px 0;
@@ -1532,7 +1567,7 @@
   }
 
   // 小屏幕自适应
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     .dialog-tabs {
       :deep(.el-tabs__item) {
         padding: 0 12px !important;
@@ -1567,8 +1602,8 @@
 
   .dialog-footer {
     display: flex;
-    justify-content: flex-end;
     gap: 12px;
+    justify-content: flex-end;
   }
 
   // 规格值对话框样式
@@ -1581,23 +1616,23 @@
   // 规格预览样式
   .spec-preview {
     padding: 16px;
+    margin-top: 12px;
     background: var(--el-fill-color-lighter);
     border-radius: 8px;
-    margin-top: 12px;
 
     .spec-preview-title {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 12px;
       font-size: 14px;
       font-weight: 600;
       color: var(--el-text-color-primary);
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
 
       &::before {
-        content: '';
         width: 4px;
         height: 16px;
+        content: '';
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 2px;
       }
@@ -1610,33 +1645,33 @@
 
       .spec-value-item {
         display: flex;
-        align-items: flex-start;
         gap: 12px;
+        align-items: flex-start;
 
         .spec-label {
           flex-shrink: 0;
           width: 80px;
-          font-size: 14px;
-          color: var(--el-text-color-regular);
-          font-weight: 500;
           padding-top: 2px;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--el-text-color-regular);
         }
 
         .spec-tags {
-          flex: 1;
           display: flex;
+          flex: 1;
           flex-wrap: wrap;
           gap: 8px;
+          align-items: center;
+          min-height: 32px;
           padding: 8px 12px;
           background: var(--el-bg-color);
           border-radius: 6px;
-          min-height: 32px;
-          align-items: center;
 
           .empty-value {
-            color: var(--el-text-color-placeholder);
             font-size: 13px;
             font-style: italic;
+            color: var(--el-text-color-placeholder);
           }
         }
       }

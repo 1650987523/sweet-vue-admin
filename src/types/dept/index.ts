@@ -12,7 +12,7 @@ export interface AdminDeptItem {
   /** 部门ID */
   id?: number
   /** 父部门ID（一级部门为空字符串） */
-  parentId: string
+  parentId: number | null
   /** 部门名称 */
   departmentName: string
   /** 部门状态（0=禁用，1=正常） */
@@ -42,7 +42,7 @@ export interface AdminDeptFormParams {
   /** 部门ID（编辑时必填） */
   id?: number
   /** 父部门ID */
-  parentId: string
+  parentId: number | null
   /** 部门名称 */
   departmentName: string
   /** 部门状态 */

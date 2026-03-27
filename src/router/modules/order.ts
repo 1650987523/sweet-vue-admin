@@ -26,14 +26,13 @@ export const orderRoutes: AppRouteRecord = {
       }
     },
     {
-      path: 'detail',
-      name: 'OrderDetail',
-      component: '/order/detail',
+      path: 'refund',
+      name: 'RefundManage',
+      component: '/order/refund',
       meta: {
-        title: 'menus.order.orderDetail',
+        title: 'menus.order.refundManage',
         keepAlive: true,
-        roles: ['R_SUPER', 'R_ADMIN'],
-        isHide: true
+        roles: ['R_SUPER', 'R_ADMIN']
       }
     }
   ]

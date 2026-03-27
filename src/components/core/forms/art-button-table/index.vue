@@ -17,7 +17,7 @@
 
   interface Props {
     /** 按钮类型 */
-    type?: 'add' | 'edit' | 'delete' | 'more' | 'view' | 'onshelf' | 'offshelf'
+    type?: 'add' | 'edit' | 'delete' | 'more' | 'view' | 'onshelf' | 'offshelf' | 'audit'
     /** 按钮图标 */
     icon?: string
     /** 按钮样式类 */
@@ -42,7 +42,8 @@
     view: { icon: 'ri:eye-line', class: 'bg-info/12 text-info' },
     more: { icon: 'ri:more-2-fill', class: '' },
     onshelf: { icon: 'ri:arrow-up-line', class: 'bg-success/12 text-success' },
-    offshelf: { icon: 'ri:arrow-down-line', class: 'bg-warning/12 text-warning' }
+    offshelf: { icon: 'ri:arrow-down-line', class: 'bg-warning/12 text-warning' },
+    audit: { icon: 'ri:file-check-line', class: 'bg-primary/12 text-primary' }
   } as const
 
   // 获取图标内容

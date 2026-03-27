@@ -208,11 +208,16 @@
         {
           prop: 'actions',
           label: '操作',
-          width: 120,
+          width: 160,
           fixed: 'right',
           formatter: (row: QrcodeItem) => {
             return h('div', [
               h(ArtButtonTable, { type: 'edit', onClick: () => handleEdit(row) }),
+              h(ArtButtonTable, {
+                icon: 'ri:download-2-line',
+                iconClass: 'bg-primary/12 text-primary',
+                onClick: () => handleDownload(row)
+              }),
               h(ArtButtonTable, { type: 'delete', onClick: () => handleDelete(row) })
             ])
           }
@@ -272,5 +277,28 @@
       ElMessage.success('删除成功')
       refreshData()
     })
+  }
+
+  // 下载二维码
+  const handleDownload = (row: QrcodeItem) => {
+    const url = row.qrcodeUrl
+    if (!url) {
+      ElMessage.warning('该桌码尚未生成二维码')
+      return
+    }
+
+    // 处理 base64 或 http 链接
+    const imageUrl =
+      url.startsWith('data:') || url.startsWith('http') ? url : `data:image/png;base64,${url}`
+
+    // 创建临时链接下载
+    const link = document.createElement('a')
+    link.href = imageUrl
+    link.download = `桌码-${row.qrcodeNo}-${row.qrcodeName}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    ElMessage.success('二维码下载成功')
   }
 </script>

@@ -156,7 +156,7 @@
         type: 'input',
         span: 12,
         props: {
-          disabled: true,
+          disabled: false,
           placeholder: '父级ID'
         }
       },
