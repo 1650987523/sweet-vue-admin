@@ -24,7 +24,7 @@
             v-for="dept in parentOptions"
             :key="dept.id"
             :label="dept.departmentName"
-            :value="dept.id"
+            :value="dept.id || 0"
           />
         </ElSelect>
       </ElFormItem>

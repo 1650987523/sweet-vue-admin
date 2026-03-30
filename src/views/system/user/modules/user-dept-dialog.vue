@@ -87,10 +87,10 @@
       loadingDepts.value = true
       const result = await fetchGetDeptList()
       deptTree.value = (result || []).map((item: AdminDeptItem) => ({
-        id: item.id,
+        id: item.id || 0,
         departmentName: item.departmentName,
         children: item.children?.map((child) => ({
-          id: child.id,
+          id: child.id || 0,
           departmentName: child.departmentName,
           children: child.children
         }))

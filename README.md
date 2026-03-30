@@ -1,16 +1,18 @@
-# Sweet Vue Admin - 企业级后台管理系统
+# Sweet Vue Admin - 后台管理系统
 
-> 基于 Vue 3 + Element Plus + TypeScript 的现代化后台管理系统
-
-[![GitHub stars](https://img.shields.io/github/stars/1650987523/sweet-vue-admin)](https://github.com/1650987523/sweet-vue-admin/stargazers) [![GitHub forks](https://img.shields.io/github/forks/1650987523/sweet-vue-admin)](https://github.com/1650987523/sweet-vue-admin/network) [![GitHub license](https://img.shields.io/github/license/1650987523/sweet-vue-admin)](https://github.com/1650987523/sweet-vue-admin/blob/main/LICENSE) [![Node](https://img.shields.io/badge/node-%3E%3D20.19.0-green)](https://nodejs.org/) [![Vue](https://img.shields.io/badge/vue-3.5.22-green)](https://vuejs.org/) [![Element Plus](https://img.shields.io/badge/element--plus-2.11.2-green)](https://element-plus.org/) [![TypeScript](https://img.shields.io/badge/typescript-5.6.3-green)](https://www.typescriptlang.org/)
+> 基于 Vue 3 + Element Plus + TypeScript 的学习研究项目
 
 ---
 
 ## 📖 项目简介
 
-**Sweet Vue Admin** 是一个基于 Vue 3 + Element Plus + TypeScript 的企业级后台管理系统模板，采用了最新的前端技术栈，无需依靠 HBuilderX，通过命令行方式运行。
+**Sweet Vue Admin** 是一个基于 Vue 3 + Element Plus + TypeScript 的后台管理系统学习项目，使用 art-design-pro 实现 https://www.artd.pro/docs/zh/guide/quick-start.html
 
-项目内置了完整的权限管理系统、商品管理、订单管理、退款管理等核心业务模块，提供了代码提示、自动格式化、统一配置、代码片段等辅助功能，让你开发后台系统拥有 **best** 体验。
+本项目旨在供大家学习和研究 Vue 3 中后台开发，包含了商品管理、订单管理、退款管理等核心业务模块的实现，提供了完整的代码示例和开发文档，适合前端开发者学习参考。
+
+**项目演示地址**: https://wanghengrun.shop
+
+**GitHub 项目地址**: https://github.com/1650987523/sweet-vue-admin
 
 ## ✨ 技术栈
 
@@ -177,10 +179,7 @@ docker run -d -p 80:80 sweet-vue-admin
 
 ### Nginx 配置
 
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
+``nginx server { listen 80; server_name your-domain.com;
 
     location / {
         root /usr/share/nginx/html;
@@ -193,8 +192,10 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
+
 }
-```
+
+````
 
 ## 📝 开发规范
 
@@ -211,7 +212,7 @@ server {
 
 ```bash
 pnpm commit
-```
+````
 
 提交类型：
 
@@ -246,6 +247,7 @@ MIT License
 - [TypeScript](https://www.typescriptlang.org/)
 - [Vite](https://vitejs.dev/)
 - [Pinia](https://pinia.vuejs.org/)
+- [ART-DEAIGN-PRO](https://www.artd.pro/docs/zh/guide/quick-start.html)
 
 ---
 

@@ -153,8 +153,8 @@
       submitting.value = true
 
       await fetchAuditRefund({
-        refundNo: props.refundData.refundNo,
-        orderNo: props.refundData.orderNo,
+        refundNo: props.refundData.refundNo || '',
+        orderNo: props.refundData.orderNo || '',
         auditStatus: formData.value.auditStatus,
         auditReason: formData.value.auditRemark,
         refundAmount: yuanToCents(formData.value.refundAmount)
